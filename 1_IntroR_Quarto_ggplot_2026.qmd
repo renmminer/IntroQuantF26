@@ -477,3 +477,13 @@ Q3: Make a plot using the data of your choosing to show something interesting ab
 ```{r}
 
 ```
+
+```{r}
+#opening national park data
+load(file = "Demo Data Files/df5.Rdata")
+glimpse(df5)
+ggplot(df5)+
+  aes(x=YearRaw, y=kVis)+
+  geom_point()
+
+```
