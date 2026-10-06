@@ -259,6 +259,8 @@ ggplot() #sugar percent vs win percent
 sweetwin<-ggplot(candy_rankings)+
   aes(x=sugarpercent,y=winpercent)+
   geom_point()
+sweetwin+
+  geom_smooth(method="lm")
 ```
 
 ## PRETTY TIME!
@@ -270,41 +272,49 @@ Reference: bit.ly/colors-r
 You can change the color in the geom argument. Test out how it works on different geoms!
 
 ```{r}
-ggplot() +  
-  aes(x = ) + 
-  geom_bar(color = '', fill = ) 
+#ggplot tells which data to pull from, aes is which variables to pull from, geom_type is the plot type, anything in the paren for geom_type is changing the plot itself (things like color, add line of fit, etc)
+#stuff inside of paren are modifying the function outside of the paren (i.e. ggplot(candy_rankings), candy_rankings is modifying ggplot)
+ggplot(candy_rankings) +  
+  aes(x = chocolate ) + 
+  geom_bar(color = 'darkblue', fill = 'coral' ) 
 ```
 
 If you want the color to reflect another variable, for example, if there is fruit in the candy too, then you make it a **mapped aesthetic**, or one that refers to some data to assign a visual. In this case, you place the **color** or **fill** argument **inside aes().**
 
 ```{r}
-ggplot() +  
-  aes(x = , fill = ) + 
-  geom_bar(position = ) 
+ggplot(candy_rankings) +  
+  aes(x = chocolate, fill = fruity ) + 
+  geom_bar(position = position_dodge()) 
 ```
 
 ### Challenge question: what proportion of candies have BOTH chocolate and caramel?
 
 ```{r}
-
+ggplot(candy_rankings)+
+  aes(x=chocolate, fill=caramel)+
+  geom_bar()
+  
 ```
 
 ### Shapes
 
 Working on a scatterplot and want the points to be different shapes? Easy too!
 
+There are online references for what number each shape is called in R.
+
 ```{r}
-ggplot() +
-  aes(x = ,
-      y = ) +
-  geom_point()
+ggplot(candy_rankings) +
+  aes(x = pricepercent,
+      y = winpercent) +
+  geom_point(shape=2)
 ```
 
 Similarly, you can **map** shape to a variable in the aes() function.
 
 ```{r}
-ggplot() +
-  aes() +
+ggplot(candy_rankings) +
+  aes(x=pricepercent, y=winpercent, shape= chocolate) +
+  geom_point()
   
 ```
 
@@ -313,23 +323,26 @@ ggplot() +
 Pretty self-explanatory here. labs() are added separately from the other plot parameters.
 
 ```{r}
-ggplot() +
-  aes(
-  labs(x = 
-       y =
-       title = ,
-       subtitle = 
-       caption =
+ggplot(candy_rankings) +
+  aes(x=sugarpercent, y=winpercent)+
+  geom_point()+
+  labs(x = "Sugar Percent",
+       y = "Win Percentage",
+       title =  "Relationship Between the Dependent and Independent Variable",
+       subtitle = "For Halloween Candies",
+       caption = "Based on an online Survey by FiveThirtyEight")
 
 ```
 
 ### X and Y axis limits
 
 ```{r}
-ggplot() +
-  aes(x = , 
-      y = =) +
+ggplot(candy_rankings) +
+  aes(x = sugarpercent , 
+      y = winpercent) +
   geom_point() +
+  xlim(0,1.5)+
+  ylim(0, 100)
 
 ```
 
@@ -499,5 +512,5 @@ Q2: Make a boxplot that compares visitation rates in all parks in 1980 to presen
 Q3: Make a plot using the data of your choosing to show something interesting about either the candy_rankings data or the np_visits data.
 
 ```{r}
-
+library(np_visits)
 ```
