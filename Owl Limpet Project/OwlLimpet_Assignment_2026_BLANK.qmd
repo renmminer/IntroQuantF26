@@ -80,7 +80,7 @@ SizeData1 <- SizeData_2022_2025 |>
 Make a table using `select()` and `distinct()` to only show the length of each transect (each unique number) at each site. Sort by site and transect number.
 
 ```{r}
-TransectLengths <- SizeData_2022_2025 |> 
+TransectLengths <- SizeData1 |> 
   select(transect_length_m, site, transect_num, year) |> 
   distinct() |> 
   arrange(transect_num)
@@ -131,25 +131,31 @@ ANSWER: Our methods have been a little inconsistent. We used different methods a
 Graph 1:
 
 ```{r}
+ggplot(SizeData1) +
+  aes(x = habitat)+
+  geom_bar()+
+  facet_wrap(year~site)
 
 ```
 
-This shows:
-
-Graph 2:
+This shows: The count of each habitat type in a given year, separated by site.
 
 ```{r}
-
+SizeData1 |> 
+  ggplot() +
+  aes(x=year)+
+  geom_bar()
 ```
 
-This shows:
+This shows: This shows us how many individuals were counted in a given year, which is yearly population across the sites. However, the year 2024 had two sites visited, so this doesn't automatically indicate that owl limpet populations were higher overall in 2024.
 
 ## Part 2: Population Density
 
 For the population density analysis, we will analyze data from Shaws Cove, Heisler Park, and Treasure Cove. Create a data frame that excludes the Corona del Mar data, as that site did not have area measured.
 
 ```{r}
-No_CDM_Sizes <- SizeData_2022_2025 |> 
+No_CDM_Sizes <- SizeData1 |> 
+  filter(site != "Corona del Mar", )
 ```
 
 #### 2.1. How many limpets did we measure at each site in each year for sizes?
