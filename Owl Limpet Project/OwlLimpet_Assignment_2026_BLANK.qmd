@@ -178,11 +178,9 @@ No_CDM_Sizes |>
 
 
 # How many did we measure in each transect? 
-TransectLimpetCountData <-No_CDM_Sizes |> 
+No_CDM_Sizes |> 
   group_by(site, year, transect_length_m) |> 
   count(transect_num, name = "limpetcount")
-
-TransectLimpetCountData
 ```
 
 #### 2.2 What was the limpet density (i.e., limpets per square meter) for each transect?
@@ -190,16 +188,19 @@ TransectLimpetCountData
 Make a new dataframe out of the `No_CDM_Sizes` that has a column called *density,* that calculates the limpets per square meter for each transect. Remember that the transect included 1 meter on either side of the tape (total of 2 meters wide). Make sure to maintain the separation in year for the two Treasure Cove surveys using the `group_by()` function.
 
 ```{r}
-Limpet_Density <- TransectLimpetCountData |> 
- summarise(density = limpetcount/transect_length_m*2)
+Limpet_Density <- No_CDM_Sizes |> 
+  group_by(site, year, transect_length_m) |> 
+  count(transect_num, name = "limpetcount")
 
+Limpet_Density<-Limpet_Density |> 
+  mutate(density = limpetcount/transect_length_m*2)
 
 Limpet_Density
-
-sumamrise(Limpet_Density, limpetdensityy = n)
 ```
 
 Do you see any patterns just from examining this table of values?
+
+Not really.
 
 #### 2.2. Calculating mean and standard error of population density
 
