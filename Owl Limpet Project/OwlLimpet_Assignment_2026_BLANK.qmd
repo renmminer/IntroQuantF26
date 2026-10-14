@@ -69,7 +69,7 @@ Size_Data
 ```
 
 ```{r}
-SizeData1 <- SizeData_2022_2025 |> 
+SizeData_2022_2025 <- SizeData_2022_2025 |> 
   filter(shell_length_mm>15)
 
 
@@ -80,7 +80,7 @@ SizeData1 <- SizeData_2022_2025 |>
 Make a table using `select()` and `distinct()` to only show the length of each transect (each unique number) at each site. Sort by site and transect number.
 
 ```{r}
-TransectLengths <- SizeData1 |> 
+TransectLengths <- SizeData_2022_2025 |> 
   select(transect_length_m, site, transect_num, year) |> 
   distinct() |> 
   arrange(transect_num)
@@ -131,7 +131,7 @@ ANSWER: Our methods have been a little inconsistent. We used different methods a
 Graph 1:
 
 ```{r}
-ggplot(SizeData1) +
+ggplot(SizeData_2022_2025) +
   aes(x = habitat)+
   geom_bar()+
   facet_wrap(year~site)
@@ -141,7 +141,7 @@ ggplot(SizeData1) +
 This shows: The count of each habitat type in a given year, separated by site.
 
 ```{r}
-SizeData1 |> 
+SizeData_2022_2025 |> 
   ggplot() +
   aes(x=year)+
   geom_bar()
@@ -154,7 +154,7 @@ This shows: This shows us how many individuals were counted in a given year, whi
 For the population density analysis, we will analyze data from Shaws Cove, Heisler Park, and Treasure Cove. Create a data frame that excludes the Corona del Mar data, as that site did not have area measured.
 
 ```{r}
-No_CDM_Sizes <- SizeData1 |> 
+No_CDM_Sizes <- SizeData_2022_2025 |> 
   filter(site != "Corona del Mar", )
 ```
 
@@ -167,12 +167,22 @@ No_CDM_Sizes
 
 # How many did we measure total, across both sites?
 No_CDM_Sizes |> 
+  nrow()
 
 ## How many did we measure at each site? 
+
 No_CDM_Sizes |> 
+  group_by(site) |> 
+  summarize(count=n())
+  
+
 
 # How many did we measure in each transect? 
-No_CDM_Sizes |> 
+TransectLimpetCountData <-No_CDM_Sizes |> 
+  group_by(site, year, transect_length_m) |> 
+  count(transect_num, name = "limpetcount")
+
+TransectLimpetCountData
 ```
 
 #### 2.2 What was the limpet density (i.e., limpets per square meter) for each transect?
@@ -180,11 +190,13 @@ No_CDM_Sizes |>
 Make a new dataframe out of the `No_CDM_Sizes` that has a column called *density,* that calculates the limpets per square meter for each transect. Remember that the transect included 1 meter on either side of the tape (total of 2 meters wide). Make sure to maintain the separation in year for the two Treasure Cove surveys using the `group_by()` function.
 
 ```{r}
-Limpet_Density <- No_CDM_Sizes |> 
-  
-  
+Limpet_Density <- TransectLimpetCountData |> 
+ summarise(density = limpetcount/transect_length_m*2)
+
 
 Limpet_Density
+
+sumamrise(Limpet_Density, limpetdensityy = n)
 ```
 
 Do you see any patterns just from examining this table of values?
