@@ -266,7 +266,7 @@ Limpet_Density |> ggplot(
   aes(x=site, y=limpetdensity, fill=year) #deliniates what the plot is plotting
 )+
   geom_boxplot() + #make a boxplot
-  scale_fill_manual(values=c("2023"="blue", "2024"="purple", "2025"="pink")) #this row changes the fill color for the different years
+  scale_fill_manual(values=c("2023"="aquamarine", "2024"="purple", "2025"="blue")) #this row changes the fill color for the different years
   labs( y = "Limpets Per Square Meter",
         x = "Site",
         title = "Limpet Density By Site") #labs is giving us labels on our graph 
