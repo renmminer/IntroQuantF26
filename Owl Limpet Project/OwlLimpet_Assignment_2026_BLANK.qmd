@@ -42,6 +42,7 @@ Start with: `SizeData_2022_2025`
 Make a histogram with all the data.
 
 ```{r}
+#make a histogram of the data
 ggplot(SizeData_2022_2025) +
   aes(x=shell_length_mm)+
   geom_histogram()
@@ -53,11 +54,11 @@ head(SizeData_2022_2025)
 Make a histogram with a `facet_wrap()` to separate the data from each site and year into separate graphs. What do you observe about the different histograms?
 
 ```{r}
-
-ggplot(SizeData_2022_2025) +
-  aes(x=shell_length_mm)+
+#make a histgram
+ggplot(SizeData_2022_2025) + #using size data 
+  aes(x=shell_length_mm)+ #x is the shell length
   geom_histogram()+
-  facet_wrap(year~site)
+  facet_wrap(year~site) #seperated by year and site 
 
 
 ```
@@ -70,7 +71,8 @@ Size_Data
 
 ```{r}
 SizeData_2022_2025 <- SizeData_2022_2025 |> 
-  filter(shell_length_mm>15)
+  filter(shell_length_mm>15) 
+#filtering out shell length that is under 15 mm
 
 
 ```
@@ -87,7 +89,9 @@ TransectLengths <- SizeData_2022_2025 |>
 TransectLengths
 
 
-
+#select() is so the table is only pulling the variables transect length, transect number, site, and year
+#Im not sure what distinct is doing here but its nice 
+#arrange () arranges it by transect number 
   
   
 
@@ -106,18 +110,20 @@ TransectLengths |> ggplot()+
   aes(x=site, y=transect_length_m)+
   geom_boxplot()
 
-
+#makes a box plot with site and transect length 
 
 TransectLengths |> ggplot() +
   aes(x=site, y=transect_length_m)+
   geom_point()
 
+#makes a scatter plot with site and transect length 
 
 TransectLengths |> ggplot() +
   aes(x=site, y=transect_length_m)+
   geom_boxplot()+
   geom_point(color="red")
  
+#puts the box plot and the scatter plot together 
   
   
 ```
@@ -135,7 +141,8 @@ ggplot(SizeData_2022_2025) +
   aes(x = habitat)+
   geom_bar()+
   facet_wrap(year~site)
-
+#aes() makes the x axis habits, so we are counting how many limpets were in each habitat
+#facet_wrap is being used to seperate the graphs into individual ones for each year/site combination
 ```
 
 This shows: The count of each habitat type in a given year, separated by site.
@@ -145,6 +152,8 @@ SizeData_2022_2025 |>
   ggplot() +
   aes(x=year)+
   geom_bar()
+
+#this one is showing how many limpets were counted during each year 
 ```
 
 This shows: This shows us how many individuals were counted in a given year, which is yearly population across the sites. However, the year 2024 had two sites visited, so this doesn't automatically indicate that owl limpet populations were higher overall in 2024.
@@ -156,6 +165,7 @@ For the population density analysis, we will analyze data from Shaws Cove, Heisl
 ```{r}
 No_CDM_Sizes <- SizeData_2022_2025 |> 
   filter(site != "Corona del Mar", )
+# filtering to remove anything from the CDM site
 ```
 
 #### 2.1. How many limpets did we measure at each site in each year for sizes?
@@ -164,16 +174,20 @@ Use nrow(), group_by() and count() to tally the limpet observations at each tran
 
 ```{r}
 No_CDM_Sizes
+#Using the data set that removed CDM
 
 # How many did we measure total, across both sites?
 No_CDM_Sizes |> 
   nrow()
+#nrow() counts how many rows there are in the data set
+#each row in the data set is the measurement for a different limpet, so by counting the rows we are counting the number of limpets counted 
 
 ## How many did we measure at each site? 
 
 No_CDM_Sizes |> 
   group_by(site) |> 
   summarize(count=n())
+#This divides the count we got in the last code by sites
   
 
 
@@ -181,6 +195,7 @@ No_CDM_Sizes |>
 No_CDM_Sizes |> 
   group_by(site, year, transect_length_m) |> 
   count(transect_num, name = "limpetcount")
+#this divides the count we got in the last code (number of limpet by sites) further by transects 
 ```
 
 #### 2.2 What was the limpet density (i.e., limpets per square meter) for each transect?
@@ -191,39 +206,54 @@ Make a new dataframe out of the `No_CDM_Sizes` that has a column called *density
 Limpet_Density <- No_CDM_Sizes |> 
   group_by(site, year, transect_length_m) |> 
   count(transect_num, name = "limpetcount")
+#this is a copy and paste of the last step on the last code section
 
 Limpet_Density<-Limpet_Density |> 
-  mutate(density = limpetcount/transect_length_m*2)
+  mutate(limpetdensity = limpetcount/transect_length_m*2)
+#mutate is creating a column named density whose values are the calculation of number of limpet divided by the area of the transect 
 
+#limpetdensity is the column with values for limpet density in each transect
+#Limpet_Density is the data set that contains the column limpetdensity 
 Limpet_Density
 ```
 
 Do you see any patterns just from examining this table of values?
 
-Not really.
+Not really. I'd need to make it a graph to really visualize anything about the data.
 
 #### 2.2. Calculating mean and standard error of population density
 
 What was the mean limpets per square meter across all sites? And the standard deviation? And standard error?
 
 ```{r}
-Limpet_Density |> 
+#finding mean density across all sites 
+mean(Limpet_Density$limpetdensity)
 
+#finding the standard deviation of the density across all sites
+sd(Limpet_Density$limpetdensity)
 
+#finding standard error
+sd(Limpet_Density$limpetdensity)/sqrt(nrow(Limpet_Density))
 ```
 
 Now create a summary table in which you calculate separate mean and standard deviation for each site and year (Shaws vs. Heisler vs. Treasure Cove)? What was the standard error? Round the mean and standard error to one decimal place. (look up the `round()` function!)
 
 ```{r}
 # use summarize() to calculate the mean and standard error (sd/sqrt(n)) for the two locations
-LimpetPopSummary <- Limpet_Density |>
-  
+
+LimpetPopSummary <- Limpet_Density |> 
+  group_by(site) |> 
+  summarise(
+    mean=round(mean(limpetdensity), 1),
+    sdev=sd(limpetdensity),
+    serror=round(sd(limpetdensity)/sqrt(nrow(LimpetPopSummary)),1))
   
   
   
  
 # Display your summary nicely using kable(). 
 knitr::kable(LimpetPopSummary)
+
 ```
 
 #### 2.4 Make three graphs to visualize the difference in density between the two sites.
@@ -231,8 +261,15 @@ knitr::kable(LimpetPopSummary)
 Boxplot, using the `Limpet_density` object, using fill for year. Label the Y-axis to say "Limpets per square meter".
 
 ```{r}
-Limpet_Density |> ggplot() + 
- 
+#making a box plot (geom_boxplot) with the site on the x axis and limpetdensity on the y axis 
+Limpet_Density |> ggplot(
+  aes(x=site, y=limpetdensity, fill=year) #deliniates what the plot is plotting
+)+
+  geom_boxplot() + #make a boxplot
+  scale_fill_manual(values=c("2023"="blue", "2024"="purple", "2025"="pink")) #this row changes the fill color for the different years
+  labs( y = "Limpets Per Square Meter",
+        x = "Site",
+        title = "Limpet Density By Site") #labs is giving us labels on our graph 
   
 ```
 
