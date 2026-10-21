@@ -193,8 +193,8 @@ No_CDM_Sizes |>
 
 # How many did we measure in each transect? 
 No_CDM_Sizes |> 
-  group_by(site, year, transect_length_m) |> 
-  count(transect_num, name = "limpetcount")
+  group_by(site) |> 
+  count(transect_num)
 #this divides the count we got in the last code (number of limpet by sites) further by transects 
 ```
 
@@ -204,13 +204,13 @@ Make a new dataframe out of the `No_CDM_Sizes` that has a column called *density
 
 ```{r}
 Limpet_Density <- No_CDM_Sizes |> 
-  group_by(site, year, transect_length_m) |> 
-  count(transect_num, name = "limpetcount")
+  select(transect_length_m, site, transect_num, year) |> 
+  group_by(transect_length_m, site, transect_num, year) |> 
+  summarize(count=n()) |> 
+  mutate(density = count/(transect_length_m*2))
+  
 #this is a copy and paste of the last step on the last code section
 
-Limpet_Density<-Limpet_Density |> 
-  mutate(limpetdensity = limpetcount/transect_length_m*2)
-#mutate is creating a column named density whose values are the calculation of number of limpet divided by the area of the transect 
 
 #limpetdensity is the column with values for limpet density in each transect
 #Limpet_Density is the data set that contains the column limpetdensity 
@@ -227,13 +227,13 @@ What was the mean limpets per square meter across all sites? And the standard de
 
 ```{r}
 #finding mean density across all sites 
-mean(Limpet_Density$limpetdensity)
-
+Limpet_Density$density |> 
+  mean()
 #finding the standard deviation of the density across all sites
-sd(Limpet_Density$limpetdensity)
+sd(Limpet_Density$density)
 
 #finding standard error
-sd(Limpet_Density$limpetdensity)/sqrt(nrow(Limpet_Density))
+sd(Limpet_Density$density)/sqrt(nrow(Limpet_Density))
 ```
 
 Now create a summary table in which you calculate separate mean and standard deviation for each site and year (Shaws vs. Heisler vs. Treasure Cove)? What was the standard error? Round the mean and standard error to one decimal place. (look up the `round()` function!)
@@ -242,13 +242,17 @@ Now create a summary table in which you calculate separate mean and standard dev
 # use summarize() to calculate the mean and standard error (sd/sqrt(n)) for the two locations
 
 LimpetPopSummary <- Limpet_Density |> 
-  group_by(site) |> 
-  summarise(
-    mean=round(mean(limpetdensity), 1),
-    sdev=sd(limpetdensity),
-    serror=round(sd(limpetdensity)/sqrt(nrow(LimpetPopSummary)),1))
-  
-  
+  group_by(site, year) |> 
+  summarise(mean_density = mean(density, na.rm = TRUE),
+            sd_density = sd(density, na.rm = TRUE),
+            n = n(),
+            se_density = sd_density/sqrt(n)) |> 
+  mutate_at(vars(mean_density, sd_density, se_density),
+            .funs = round,2)
+      
+            
+            
+            
   
  
 # Display your summary nicely using kable(). 
@@ -263,10 +267,10 @@ Boxplot, using the `Limpet_density` object, using fill for year. Label the Y-axi
 ```{r}
 #making a box plot (geom_boxplot) with the site on the x axis and limpetdensity on the y axis 
 Limpet_Density |> ggplot(
-  aes(x=site, y=limpetdensity, fill=year) #deliniates what the plot is plotting
+  aes(x=site, y=density, fill=year) #deliniates what the plot is plotting
 )+
   geom_boxplot() + #make a boxplot
-  scale_fill_manual(values=c("2023"="aquamarine", "2024"="purple", "2025"="blue")) #this row changes the fill color for the different years
+  scale_fill_manual(values=c("2023"="aquamarine", "2024"="purple", "2025"="blue"))+ #this row changes the fill color for the different years
   labs( y = "Limpets Per Square Meter",
         x = "Site",
         title = "Limpet Density By Site") #labs is giving us labels on our graph 
@@ -277,9 +281,19 @@ A column plot with errorbars, and fill = year, using your new `LimpetPopSummary`
 
 ```{r}
 LimpetPopSummary |> ggplot()+
+  aes(x= site, y=mean_density, fill=year)+
+  geom_col(position=position_dodge())+
+  geom_errorbar(aes(ymin=mean_density-sd_density,
+                    ymax=mean_density+sd_density),
+                    position = position_dodge(0.8),
+                    width = 0.2)
+  
  
   
-  
+labs( y = "Limpets Per Square Meter",
+      x = "Site",
+      title = "Limpet Density By Site") #labs is giving us labels on our graph 
+
 
 ```
 
@@ -287,6 +301,8 @@ A `geom_point()` or `geom_jitter()`plot to visualize individual transect density
 
 ```{r}
 Limpet_Density |> ggplot() + 
+  aes(x=transect_num, y=density, color=transect_num)+
+  geom_point()
   
   
   
@@ -313,6 +329,8 @@ Is it roughly the same so that we can compare? Is it enough to run a statistical
 
 ```{r}
 Limpet_Density |> 
+  group_by(site, year) |> 
+  summarize(sample_size=n_distinct(transect_num))
 ```
 
 #### 2.6. Does average number of owl limpets per square meter differ significantly between Heisler Park and Shaws Cove?
@@ -322,9 +340,10 @@ Filter the data to only include those sites before putting it into the `t.test()
 ```{r t-test}
 # run a t-test on your count data from each site (Limpet_Density)
 ShawsHeislerDensity <- Limpet_Density |> 
+  filter(site == "Heisler Park" | site == "Shaws Cove")
 
 
-t.test(     , data = ShawsHeislerDensity)
+t.test(density ~ site   , data = ShawsHeislerDensity)
 
 ```
 
@@ -334,8 +353,15 @@ Explain the results of this t-test. Are you surprised by this result, given the 
 
 ```{r}
 TC_density <- Limpet_Density |>
+  filter(site == "Treasure Cove")
 
-t.test(    )
+t.test(density ~ year, data=TC_density)
+
+TC_density |> 
+  ggplot()+
+  aes(x=year, y=density)+
+  geom_point()+
+  labs (title= "Limpet Density at Treasure Cove", x= "Year", Y= "Limpet Density")
 ```
 
 Since there was no difference in means, we'll ignore year at Treasure Cove from now on and just pool our data to make it easier for ourselves.
@@ -357,6 +383,14 @@ Since there was no difference in means, we'll ignore year at Treasure Cove from 
 # generate a nice table (like you did for counts, using kable() and round digits) with the mean shell length, standard deviation, and sample size of each site. Ignore transect. 
 
 SizeData_2022_2025 |> 
+  group_by(site, year) |> 
+  summarize(mean_shell= mean(shell_length_mm, na.rm=TRUE),
+           sd_shell=sd(shell_length_mm, na.rm=TRUE),
+           n=n())|> 
+  mutate_at(vars(mean_shell, sd_shell, n), 
+            .funs=round, 2) 
+ # Display your summary nicely using kable(). 
+knitr::kable(SizeData_2022_2025)
 
   
 ```
@@ -365,9 +399,11 @@ SizeData_2022_2025 |>
 
 ```{r}
 ggplot(SizeData_2022_2025) +
+  aes(x=site, y=shell_length_mm, fill=year)+
+  geom_boxplot()+
+  labs(title="Limpet Shell Length by Site", x="Site", y="Shell Length (mm)")
+  
 
-  
-  
 ```
 
 #### 3.2. Is there a [statistically significant]{.underline} difference in [mean]{.underline} size between limpets measured at Treasure Cove (a relatively low-impact site) compared to CDM (a high impact site)?
@@ -389,22 +425,24 @@ T-Test assumptions (for a Student's T-test)
 
 # create the appropriate filter to include only Treasure Cove and CDM data
 CDM_TC_Sizes <- SizeData_2022_2025 |> 
+  filter(site == "Corona del Mar" | site == "Treasure Cove")
 
   
 # set the linear model for testing the assumptions
-model <- lm(   )
+model <- lm(shell_length_mm ~ site, data = CDM_TC_Sizes)
 
 # Examine plot of Residuals vs. Fitted values
 plot(model, which = 1)
 
 # F-test for homogeneity of variance - if p-value < 0.05 then variances are different. 
-var.test(     )
+var.test(shell_length_mm ~ site, data = CDM_TC_Sizes)
 
 # NOTE: if your sample fails this test, have no fear! Welch's t-test (the default that R uses) is okay to use with unequal variances. 
 
 ```
 
 - Is the distribution of the model residuals approximately normal?
+  - No, the distribution of residuals has data clumping at either end, rather than an even distribution around the fitted line.
 
 ```{r}
 ## Test for normality
@@ -414,6 +452,9 @@ plot(model, which = 2)
 
 # conduct a Shapiro-Wilk test on the residuals
 shapiro.test(model$residuals)
+
+
+?shapiro.test
 ```
 
 Why will we not pay attention to this Shapiro-Wilk test result? Because the sample size is very large and Shapiro-Wilk is overly sensitive (gives false positives) at large sample sizes.
@@ -422,7 +463,8 @@ Why will we not pay attention to this Shapiro-Wilk test result? Because the samp
 
 ```{r t-test or Wilcox}
 # calculate the t-test results
-t.test(      )
+t.test(CDM_TC_Sizes$shell_length_mm )
+#the p-value is telling us if the shell length betweens sites are different enough to be statistically significant. 
 ```
 
 #### [3.3 Graph your results using a column plot with error bars for standard error]{.underline}
@@ -430,7 +472,28 @@ t.test(      )
 For full credit, have well centered error bars and professionally labeled axes (they should not say "mean", they should say the variable name).
 
 ```{r}
-CDM_TC_Sizes |>
+CDM_TC_Sizes |> 
+  group_by(site) |> 
+  summarize(mean_shell= mean(shell_length_mm, na.rm=TRUE),
+            sd_shell=sd(shell_length_mm, na.rm=TRUE),
+            n=n(),
+            se_shell= sd_shell/sqrt(n)) |> 
+  ggplot(
+    aes(x=site, y= mean_shell)
+  )+
+  geom_col()+
+  geom_errorbar(aes(ymin=mean_shell-sd_shell,
+                    ymax=mean_shell+sd_shell),
+                    position = position_dodge(0.8),
+                    width=0.2)+
+  labs(title= "Shell Lengtth at CDM and Treasure Cove",
+       x = "Site",
+       y= "Shell Length (mm)")
+  
+  
+  
+
+  
   
 
 ```
@@ -460,16 +523,23 @@ If you would like to test whether size differs by predicted human impact, at CDM
 Clean up and combine the 2023, 2024 and 2025 data for Territories:
 
 ```{r}
+#first we load the data 
 load(file = "Data/All_Territories.Rdata")
 
 load(file = "Data/FenbergTerr.Rdata")
+
+All_Territories = All_Territories |> 
+  select(site, numbsquares, year, location, size_mm)
+
 ```
 
 #### 4.2 How many limpet territories did we measure?
 
 ```{r}
 ## How many territories were measured at each site in each year? 
+
 All_Territories |> 
+  count(site, year)
 ```
 
 #### 4.3 Calculate meaningful variables from our measured values
@@ -482,6 +552,11 @@ Create new columns for:
 
 ```{r}
 All_Territories_area_mass <- All_Territories |> 
+  mutate(territory_area_mm=numbsquares*19*19) |> 
+  mutate(mass_g = 0.00009*size_mm ^ 3.0471)
+  
+  
+  
   # create a new column for territory area in mm^2 using the "numbsquares" column
          # mesh = 19 mm x 19 mm 
 
@@ -499,27 +574,44 @@ Explore the relationship between mass_g, and area_mm2 using scatter plots.
 # plot size_mm vs area_mm2 scatterplot with best fit regression line, no SE zone, not separated by site
 All_Territories_area_mass |> 
   ggplot() + 
+  aes(x=size_mm, y=territory_area_mm)+
+  geom_point()+
+  geom_smooth(method="lm", se=FALSE)+
+  labs(title="Limpet Size v. Territory Area", x="Limpet Size (mm)", y= "Territory Size (mm^2)")
   
 ```
 
 ```{r}
 ## Scatter plot with site mapped to color
-All_Territories_area_mass |>
+All_Territories_area_mass |> 
   ggplot() + 
- 
+  aes(x=size_mm, y=territory_area_mm, color=site)+
+  geom_point()+
+  geom_smooth(method="lm", se=FALSE)+
+  labs(title="Limpet Size v. Territory Area", x="Limpet Size (mm)", y= "Territory Size (mm^2)")
 ```
 
 ```{r}
 #  mass_g vs. area_mm2 scatterplot with best fit regression line, no SE zone, faceted by habitat
-All_Territories_area_mass |>
+All_Territories_area_mass |> 
   ggplot() + 
+  aes(x=mass_g, y=territory_area_mm)+
+  geom_point()+
+  geom_smooth(method="lm", se=FALSE)+
+  labs(title="Limpet Mass v. Territory Area", x="Limpet Mass (g)", y= "Territory Size (mm^2)")+
+  facet_wrap(year~site)
   
 ```
 
 #### 4.5 What observations do you make about these plots? What do you find interesting about them? Explain one observation and make one more plot of your choosing to explore something you found interesting.
 
 ```{r}
-
+All_Territories_area_mass |> 
+  ggplot() + 
+  aes(x=size_mm, y=mass_g)+
+  geom_point()+
+  labs(title="Limpet Length (mm) v. Limpet Body Mass (g)", x="Limpet Length (mm))", y= "Limpet Mass (g)")+
+  facet_wrap(year~site)
 ```
 
 #### 4.6. What important assumptions of tests of linear regression do these scatter plots fail? How can you tell?
