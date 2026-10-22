@@ -29,8 +29,10 @@ You have been given data from several locations and survey years:
 
 ```{r}
 load(file = "Data/SizeData_2022_2025.Rdata")
+# loads the file with all of the limpet data into R
 
 SizeData_2022_2025
+#shows us the data file 
 ```
 
 ## **Part 1: Data Exploration**
@@ -43,12 +45,12 @@ Make a histogram with all the data.
 
 ```{r}
 #make a histogram of the data
-ggplot(SizeData_2022_2025) +
-  aes(x=shell_length_mm)+
-  geom_histogram()
+ggplot(SizeData_2022_2025) + #ggplot makes the plot and tells R what data to use
+  aes(x=shell_length_mm)+ #assigns x-axis the shell length data column
+  geom_histogram() #makes the plot a histogram
 
 head(SizeData_2022_2025)
-
+#head shows the first few rows of a data frame 
 ```
 
 Make a histogram with a `facet_wrap()` to separate the data from each site and year into separate graphs. What do you observe about the different histograms?

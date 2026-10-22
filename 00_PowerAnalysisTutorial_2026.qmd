@@ -8,6 +8,8 @@ editor: visual
 
 ```{r}
 install.packages("pwr")
+install.packages("patchwork")
+install.packages("janitor")
 
 library(pwr)
 library(tidyverse)
@@ -104,6 +106,7 @@ loose <- ggplot(tight, aes(var1,var3)) + geom_point() + geom_smooth(method = "lm
 tightlm <- ggplot(tight, aes(`sort(var1)`,`sort(var3)`)) + geom_point() + geom_smooth(method = "lm") + labs(x = "", y = "")
 
 library(patchwork)
+#used to put all of the plots in one display frame 
 
 (small | large) / (loose | tightlm)
 ```
@@ -336,6 +339,8 @@ Power0999 <- pwr.t.test(
   type = "two.sample"
 )
 
+
+
 Power09$n
 Power095$n
 Power099$n
@@ -346,7 +351,7 @@ What was the **power** of our full-scale owl limpet study for the difference bet
 
 ```{r}
 pwr.t.test(
-  n = nrow(All_Size_Data),
+  n = 187,
   d = 0.9599906,
   sig.level = 0.05,
   power = NULL,
