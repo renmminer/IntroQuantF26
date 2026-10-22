@@ -66,7 +66,7 @@ ggplot(SizeData_2022_2025) + #using size data
 We know our minimum size cut-off varied in different years of the surveys, and some teams just didn't follow directions. Filter out any observations smaller than 15 mm.
 
 ```{r}
-Size_Data
+SizeData_2022_2025
 ```
 
 ```{r}
@@ -605,6 +605,8 @@ All_Territories_area_mass |>
 
 #### 4.5 What observations do you make about these plots? What do you find interesting about them? Explain one observation and make one more plot of your choosing to explore something you found interesting.
 
+In the Limpet Size V. Territory Size graph, the treasure cove section has a very similar shape to the treasure cove section in the Limpet Mass V. Territory Size. So, I wondered if the two are related (i.e. how would they look graphed against each other).
+
 ```{r}
 All_Territories_area_mass |> 
   ggplot() + 
@@ -616,29 +618,38 @@ All_Territories_area_mass |>
 
 #### 4.6. What important assumptions of tests of linear regression do these scatter plots fail? How can you tell?
 
+These scatter plots do not show a linear relationship between the variables, but appear to be more of an exponential relationship. As such, there is (presumably) uneven variance of distance between the mean for each data point.
+
 ```{r}
 
 # write a linear model for the relationship, then use the plot() function on the model object to show the residuals vs. fitted values and QQ plots to assess your regression. 
 
-linear_model <- lm(     )
+linear_model <- lm(territory_area_mm ~ mass_g, All_Territories_area_mass)
+#writes linear model for mass_g (x value) and territroy_area_mm (y value)
 
 plot(linear_model)
+#plots the linear model
 ```
 
 One way to transform data that has this shape is to apply a log-transformation. Logarithmic relationships are common in biology for mass, volume, or other spatial relationships.
 
 #### 4.7. Plot the relationship between log-transformed mass and log-transformed area. Does this relationship meet assumptions?
 
+This plot looks more like a cloud shape, so it is closer to what we assume a scatter plot representing a linear relationship should look like.
+
 ```{r scatterplot with regression line}
 # plot a scatterplot log area on y axis by log mass_g on x axis, best fit regression line but no SE interval
 
 All_Territories_area_mass |> ggplot() + 
+  aes(x=log(mass_g), y=log(territory_area_mm))+
+  geom_point()+
+  geom_smooth(method="lm", se=FALSE)
 
 ```
 
 ```{r}
 # write the linear model object and examine the residual and QQ plots
-log_model <- lm(     )
+log_model <- lm(log(territory_area_mm)~log(mass_g), All_Territories_area_mass)
   
 plot(log_model, which = 1)
 plot(log_model, which = 2)
