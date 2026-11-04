@@ -145,10 +145,30 @@ UniqueTagsExploring<-Height_Data_Raw |>
   filter(Dead_Alive == "Alive", na.rm = TRUE) |> 
   filter(Sapling_AB_etc != "NA" ) 
 
-length(unique(Height_Data_Explore$Tag_Num))
+length(unique(UniqueTagsExploring$Tag_Num))
 ```
 
 So, there are 18 tags that have multiple saplings.
+
+**Question: Do the two dates have different amounts of alive and dead saplings?**
+
+```{r}
+#this first part creates a data frame without multiple values for one tag number
+NoTagAB <- Height_Data_Raw |> 
+  distinct(Tag_Num, .keep_all = TRUE)
+
+#Now we gots to graph it
+NoTagAB |> 
+  ggplot()+
+  aes(x=Dead_Alive)+
+  geom_bar()+
+  facet_wrap(.~Date)
+
+```
+
+This isn't terribly helpful, given that each date was at different blocks. So, they probably had different numbers of seeds planted in first place. But we do see that they had different rations of dead to alive plants. This could then lead to more questions about what else is different between the two dates- this then leads me into what I am actually planning on looking at in the actual analysis, which is how the date changes the soil moisture and rate of photosynthesis. I want to look into this because we know that in between the two dates there was a large rainstorm, so the dates actually represent Before and After states.
+
+It also gives us counts for NA in both the date range and in the survivalship category. Obviously, this means there is junk data that needs to be removed.
 
 ## Data Cleaning
 
@@ -157,17 +177,62 @@ So, there are 18 tags that have multiple saplings.
 In this section we will look at and clean up each of the data sets you identified that you would like to analyze in your research questions. What to look for when data cleaning:
 
 1.  Dimensions
+
     1.  Does the data have the right number of rows? Are there blank rows of NAs at the bottom that need to be removed?
         - `nrow()`, `dim()`, `glimpse()` to view counts of rows
-    2.  Do you have all the columns you need? Do you need to bring in additional information for context?
+        - After running the below chunk, we see that there are a LOT of NA rows that need to be removed at the bottom. There are also a lot of NAs within the data, but most seem to be in columns I am not actively using (like comments)
+        - We also see that the moist data and the LICOR data do not have the same number of rows. Hopefully getting rid of the NA rows from the bottom will take care of that.
+        - running dim(LICOR_Data_Raw) reveals that I am afraid of that data set simply due to its size. Luckily, in the hypothesis worksheet, I already identified which columns I will use to I am slightly less scared, but only slightly.
+
+    ```{r}
+
+    nrow(Moist_Data_Raw)
+    dim(Moist_Data_Raw)
+    glimpse(Moist_Data_Raw)
+
+    nrow(LICOR_Data_Raw)
+    dim(LICOR_Data_Raw)
+    glimpse(LICOR_Data_Raw)
+
+    view(LICOR_Data_Raw)
+    #this is the easiest way to look at the data, glimpse is really a lot to look at tbh becuase of the size of this set. 
+
+    ```
+
+    1.  
+
+        - 
+
+        2\. Do you have all the columns you need? Do you need to bring in additional information for context?
+
         - `ncol()`, `str()`, `names()`, `glimpse()` to view column numbers and names
+        - 
         - `full_join()`, `inner_join()`, `left_join()` etc. to merge with other data based on matching columns
         - Are there columns you won't use that you'd like to exclude for simplicity using `select()`
+
+    ```{r}
+    ncol(Moist_Data_Raw)
+    str(Moist_Data_Raw)
+    names(Moist_Data_Raw)
+    view(Moist_Data_Raw)
+
+    #we don't need to merge this with any other data since there isn't data that this would make sense to merge with 
+    #there are columns we won't use, so we'll select to exclude those
+    #I also want to rename the dataframe so I know its for soil data
+
+    Soil_Data<-Moist_Data_Raw |> 
+      select(Date, Block, Treatment, VWC1_perc, VWC2_perc, VWC3_perc)
+    ```
+
 2.  Column names
+
     1.  Are your column names tidy (i.e., have no punctuation or spaces, consistent capitals)?
         - `rename()` to fix column names
         - Recommendation: rename some of those messy LICOR columns to more useful and memorable ones!
+          - Column names for soil moisture data are fine.
+
 3.  Data types
+
     1.  Are your columns in the correct format?
         - `typeof(data$variable)` or `glimpse()` to check column data type
         - `mutate(variable = as.numeric())` to convert to numeric
@@ -178,7 +243,28 @@ In this section we will look at and clean up each of the data sets you identifie
         - `mutate(variable = case_when([see Data Wrangling demo]))` to repair
     3.  Are there any cells that contain two kinds of information and may need to be separated? (e.g. Tag_Num that also includes sapling A/B or A1, A2, or A3)
         - `separate()` to create two new columns by splitting the data based on a delimiter
+
+    ```{r}
+    glimpse(Soil_Data)
+
+    #Date, treatment, and block are correct. 
+    #VWC columns are not correct- these are listed as characters but should be numeric data types. Upon further examination, I see that its because some of the values are NA. I can't seem to find a way to get the NA values ommited without losing entire columns and rows, so I'm going to jump forward a bit by creating the mean VWC for each block (since I know this is what I plan to use later in my analysis). This way, Ill have a mean VWC instead of three VWCs, some of which are NA values. 
+
+
+    Soil_Data |> 
+      mutate(Avg_VWC = case_when(
+        VWC1_perc == "NA" ~ ((VWC2_perc + VWC3_perc)/2),
+        VWC2_perc == "NA" ~ ((VWC_1perc + VWC3_perc)/2),
+        VWC3_perc == "NA" ~ ((VWC1_perc + VWC2_perc)/2),
+        VWC1_perc != "NA" & VWC2_perc != "NA" & VWC3_perc != "NA" ~ ((VWC1_perc + VWC2_perc + VWC3_perc)/2)
+        )
+      )
+     
+
+    ```
+
 4.  Irregular Values
+
     1.  Do all the values make sense for your data set (e.g., outliers)
         1.  `summary(df$variable)` gives the min & max and other values to see IF there is a weird value
         2.  `which(df$variable == 102.0)` gives the ROW NUMBER of any rows that have that value
