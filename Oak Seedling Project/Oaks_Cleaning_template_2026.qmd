@@ -100,6 +100,56 @@ Before you can analyze your specific questions, you need to clean up and get a s
 
     1.  Let this lead you! Maybe you find a relationship between two variables. Does that mean there is also a relationship with a third variable? Check it out! Today is about looking at EVERYTHING, not just your specific research question.
 
+**Question: What does the data in each data set (height, soil moisture, SPAD, LICOR) include?**
+
+```{r}
+names(Height_Data_Raw)
+
+names(Moist_Data_Raw)
+
+names(SPAD_Data_Raw)
+
+names(LICOR_Data_Raw)
+```
+
+Answer: All contain date, block, treatment, tag numbers, identifier for multiple saplings in a tag group, as well as other stuff that isn't relevant (i.e. who did the data sampling, who did QA/QC, etc)
+
+Height data has survivorship and height of sapling.
+
+Moisture data has volumetric water content percent and period for three samples within each treatment in each block.
+
+SPAD data has survivorship, SPAD values for 6 leaves on each plant, number of leaves.
+
+The Licor data has 116 columns, so I wont list them here. Overall, the columns include information to help identify which plant the measurements are for, measurements on factors of photosynthesis and transpiration, and then a lot of data points for what the settings on the LICOR were at the time of reading.
+
+Important Note: There are a lot of NAs in the data. When I did View(datasets), I saw that there are a lot of rows that are entirely NA values. I am guessing this is just due to how the spreadsheet transferred into R. There are a lot of columns with a significant number of NA values as well. Specifically, the tag numbers that had either no saplings or just one sapling had NA values for the Sapling AB column. There are also lots of NAs in the rows for the dead saplings.
+
+**New Question:**
+
+On survivorship and multiple saplings per tag: How many saplings (i.e. tags) survived? How many of the tags had multiple saplings?
+
+```{r}
+
+#how many saplings survived?
+Height_Data_Raw |> 
+  filter(Dead_Alive == "Alive") |> 
+  count()
+
+```
+
+this returns a count of 72, so we know we have 72 alive saplings.
+
+```{r}
+#How many tags had more than one sapling? 
+UniqueTagsExploring<-Height_Data_Raw |> 
+  filter(Dead_Alive == "Alive", na.rm = TRUE) |> 
+  filter(Sapling_AB_etc != "NA" ) 
+
+length(unique(Height_Data_Explore$Tag_Num))
+```
+
+So, there are 18 tags that have multiple saplings.
+
 ## Data Cleaning
 
 ### How to Examine and Clean Data
