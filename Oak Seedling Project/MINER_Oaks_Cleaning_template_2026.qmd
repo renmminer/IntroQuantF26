@@ -1,0 +1,357 @@
+---
+title: "Oaks_Cleaning_EDA_template"
+author: Amy King-Henry
+datemodified: October 29, 2026
+format: html
+editor: visual
+---
+
+# Oaks Exploratory Data Analysis
+
+For your final project analysis, you have been placed into groups, within which you can collaborate and help each other. Within your group, you will divide up the different data that is available to ask questions. You are required to address TWO questions each.
+
+1.  An ANOVA/GLM question that addresses the impact of the experimental treatments on a measured variable (SPAD, stomatal conductance, or height) in one of the two plant species.
+2.  A question of your choice that analyzes one of the abiotic variables (soil moisture, slope, aspect, etc.), past year data, or an interaction within the experiment.
+
+The following worksheet will guide you through developing your research questions, hypotheses, and analysis approach.
+
+### Load your packages
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+### Import all the data
+
+```{r}
+Height_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "Seedling Heights")
+
+Moist_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "Soil Moisture")
+
+SPAD_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "SPAD", 
+             na = "NA")
+```
+
+**Amy gives the gift of importing the LICOR objects for you:**
+
+```{r}
+LICOR_Data_Raw_NAMES <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx",              
+             sheet = "LICOR", 
+             n_max = 3, 
+             col_names = FALSE, 
+             col_types = "text") |> 
+  summarise(across(.fns = paste, collapse = "_")) |> 
+  unlist() |> 
+  unname()
+
+LICOR_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx",  
+             sheet = "LICOR", 
+             skip = 3, 
+             col_names = LICOR_Data_Raw_NAMES,
+             col_types = "text")
+
+
+ALL_Licor_NAMES <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "ALL_Licor_Ignore", 
+             n_max = 3, 
+             col_names = FALSE, 
+             col_types = "text") |> 
+  summarise(across(.fns = paste, collapse = "_")) |> 
+  unlist() |> 
+  unname()
+
+ALL_Licor <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "ALL_Licor_Ignore", 
+             skip = 3, 
+             col_names = ALL_Licor_NAMES, 
+             col_types = "text")
+
+LICOR_Data_Raw <- full_join(LICOR_Data_Raw, ALL_Licor)
+```
+
+## Exploratory Data Analysis:
+
+Before you can analyze your specific questions, you need to clean up and get a sense of the data. Exploratory Data Analysis has the following goals:
+
+1.  **Generate questions about your data.**
+
+    1.  [This is not just about your research questions!]{.underline} Questions might include: how many samples are there for each treatment? Why is there a weird outlier in that one variable? Why won't this variable plot?
+
+    2.  More interesting questions might include: Is there a relationship between these variables? Why is there a pattern where one is higher in only that variable?
+
+2.  **Search for answers by visualizing, transforming, and modelling your data.**
+
+    1.  You can identify problems (like outliers or NA values) by plotting data, or transforming and manipulating it. Answers might include: That outlier was entered incorrectly from the original datasheets, OR it keyed to the wrong species; This variable won't plot because R originally read it in as a character instead of a number (and some lines had words entered instead of NA). You can use these answers to
+
+    2.  Visualizing = plotting, transforming = calculating new variables, log transformations, etc. and modelling = fitting linear models/ANOVA tests to the data.
+
+3.  **Use what you learn to refine your questions and/or generate new questions.**
+
+    1.  Let this lead you! Maybe you find a relationship between two variables. Does that mean there is also a relationship with a third variable? Check it out! Today is about looking at EVERYTHING, not just your specific research question.
+
+**Question: What does the data in each data set (height, soil moisture, SPAD, LICOR) include?**
+
+```{r}
+names(Height_Data_Raw)
+
+names(Moist_Data_Raw)
+
+names(SPAD_Data_Raw)
+
+names(LICOR_Data_Raw)
+```
+
+Answer: All contain date, block, treatment, tag numbers, identifier for multiple saplings in a tag group, as well as other stuff that isn't relevant (i.e. who did the data sampling, who did QA/QC, etc)
+
+Height data has survivorship and height of sapling.
+
+Moisture data has volumetric water content percent and period for three samples within each treatment in each block.
+
+SPAD data has survivorship, SPAD values for 6 leaves on each plant, number of leaves.
+
+The Licor data has 116 columns, so I wont list them here. Overall, the columns include information to help identify which plant the measurements are for, measurements on factors of photosynthesis and transpiration, and then a lot of data points for what the settings on the LICOR were at the time of reading.
+
+Important Note: There are a lot of NAs in the data. When I did View(datasets), I saw that there are a lot of rows that are entirely NA values. I am guessing this is just due to how the spreadsheet transferred into R. There are a lot of columns with a significant number of NA values as well. Specifically, the tag numbers that had either no saplings or just one sapling had NA values for the Sapling AB column. There are also lots of NAs in the rows for the dead saplings.
+
+**New Question:**
+
+On survivorship and multiple saplings per tag: How many saplings (i.e. tags) survived? How many of the tags had multiple saplings?
+
+```{r}
+
+#how many saplings survived?
+Height_Data_Raw |> 
+  filter(Dead_Alive == "Alive") |> 
+  count()
+
+```
+
+this returns a count of 72, so we know we have 72 alive saplings.
+
+```{r}
+#How many tags had more than one sapling? 
+UniqueTagsExploring<-Height_Data_Raw |> 
+  filter(Dead_Alive == "Alive", na.rm = TRUE) |> 
+  filter(Sapling_AB_etc != "NA" ) 
+
+length(unique(UniqueTagsExploring$Tag_Num))
+```
+
+So, there are 18 tags that have multiple saplings.
+
+**Question: Do the two dates have different amounts of alive and dead saplings?**
+
+```{r}
+#this first part creates a data frame without multiple values for one tag number
+NoTagAB <- Height_Data_Raw |> 
+  distinct(Tag_Num, .keep_all = TRUE)
+
+#Now we gots to graph it
+NoTagAB |> 
+  ggplot()+
+  aes(x=Dead_Alive)+
+  geom_bar()+
+  facet_wrap(.~Date)
+
+```
+
+This isn't terribly helpful, given that each date was at different blocks. So, they probably had different numbers of seeds planted in first place. But we do see that they had different rations of dead to alive plants. This could then lead to more questions about what else is different between the two dates- this then leads me into what I am actually planning on looking at in the actual analysis, which is how the date changes the soil moisture and rate of photosynthesis. I want to look into this because we know that in between the two dates there was a large rainstorm, so the dates actually represent Before and After states.
+
+It also gives us counts for NA in both the date range and in the survivalship category. Obviously, this means there is junk data that needs to be removed.
+
+## Data Cleaning
+
+### How to Examine and Clean Data
+
+In this section we will look at and clean up each of the data sets you identified that you would like to analyze in your research questions. What to look for when data cleaning:
+
+1.  Dimensions
+
+    1.  Does the data have the right number of rows? Are there blank rows of NAs at the bottom that need to be removed?
+        - `nrow()`, `dim()`, `glimpse()` to view counts of rows
+        - After running the below chunk, we see that there are a LOT of NA rows that need to be removed at the bottom. There are also a lot of NAs within the data, but most seem to be in columns I am not actively using (like comments)
+        - We also see that the moist data and the LICOR data do not have the same number of rows. Hopefully getting rid of the NA rows from the bottom will take care of that.
+        - running dim(LICOR_Data_Raw) reveals that I am afraid of that data set simply due to its size. Luckily, in the hypothesis worksheet, I already identified which columns I will use to I am slightly less scared, but only slightly.
+
+    ```{r}
+
+    nrow(Moist_Data_Raw)
+    dim(Moist_Data_Raw)
+    glimpse(Moist_Data_Raw)
+
+    nrow(LICOR_Data_Raw)
+    dim(LICOR_Data_Raw)
+    glimpse(LICOR_Data_Raw)
+
+    view(LICOR_Data_Raw)
+    #this is the easiest way to look at the data, glimpse is really a lot to look at tbh becuase of the size of this set. 
+
+    ```
+
+    1.  
+
+        - 
+
+        2\. Do you have all the columns you need? Do you need to bring in additional information for context?
+
+        - `ncol()`, `str()`, `names()`, `glimpse()` to view column numbers and names
+        - 
+        - `full_join()`, `inner_join()`, `left_join()` etc. to merge with other data based on matching columns
+        - Are there columns you won't use that you'd like to exclude for simplicity using `select()`
+
+    ```{r}
+    ncol(Moist_Data_Raw)
+    str(Moist_Data_Raw)
+    names(Moist_Data_Raw)
+    view(Moist_Data_Raw)
+
+    #we don't need to merge this with any other data since there isn't data that this would make sense to merge with 
+    #there are columns we won't use, so we'll select to exclude those
+    #I also want to rename the dataframe so I know its for soil data
+
+    Soil_Data<-Moist_Data_Raw |> 
+      drop_na(Date) |> #drop any rows without date, as the rows without date are the rows that are entirely NA
+      select(Date, Block, Treatment, VWC1_perc, VWC2_perc, VWC3_perc)
+
+
+
+    ```
+
+2.  Column names
+
+    1.  Are your column names tidy (i.e., have no punctuation or spaces, consistent capitals)?
+        - `rename()` to fix column names
+        - Recommendation: rename some of those messy LICOR columns to more useful and memorable ones!
+
+```{r}
+Soil_Data <- Soil_Data |> 
+  rename(YYMD = Date) #why I did this: when I type Date in, R has a lot of functions called date that come up, and I want my column to come up 
+```
+
+1.  Data types
+
+    1.  Are your columns in the correct format?
+        - `typeof(data$variable)` or `glimpse()` to check column data type
+        - `mutate(variable = as.numeric())` to convert to numeric
+        - `mutate(variable = as.character())` to convert to string/word
+        - `mutate(variable = factor())` to convert to factor
+    2.  Do the values in your columns all match the format you want? (e.g., are there characters in a numeric column?
+        - `unique(data$variable)` to see all unique values in that column
+        - `mutate(variable = case_when([see Data Wrangling demo]))` to repair
+    3.  Are there any cells that contain two kinds of information and may need to be separated? (e.g. Tag_Num that also includes sapling A/B or A1, A2, or A3)
+        - `separate()` to create two new columns by splitting the data based on a delimiter
+
+    ```{r}
+    glimpse(Soil_Data)
+
+    unique(Soil_Data$VWC1_perc)
+
+    Soil_Data |> 
+      mutate(VWC1_perc = factor())
+    #I cannot for the life of me get VWC1, 2, and 3 to convert into number type columns. But Ive spent two days on this so Im going to move on for now. 
+    ```
+
+2.  Irregular Values
+
+    1.  Do all the values make sense for your data set (e.g., outliers)
+        1.  `summary(df$variable)` gives the min & max and other values to see IF there is a weird value
+        2.  `which(df$variable == 102.0)` gives the ROW NUMBER of any rows that have that value
+        3.  If you find something weird, check it against the original data sheets, correct or remove with `filter()` if appropriate.
+        4.  View your data with histograms.
+
+```{r}
+#because I wasn't able to convert the VWC columns into number type data, the min max values dont tell us anything because R doesn't read the values as numbers. 
+
+ggplot(Soil_Data)+
+  aes( x = YYMD, y= VWC1_perc, na.rm = TRUE)+
+  geom_boxplot()
+
+```
+
+I am not sure what this is telling me becuase its not actually a boxplot, like I expected it to be. What I do see is that the later date has higher minimum and maximum VWC values, which makes sense given that the soil moisture for that date was (probably, based on when the rain storm happened) higher.
+
+### ANOVA dataset
+
+You may be either examining `SPAD_Data_Raw`, `Height_Data_Raw`, `LICOR_Data_Raw`, or `Moist_Data_Raw` for your ANOVA question. Examine your data set using the diagnostic functions I've given you above in the How to Examine and Clean Data section.
+
+```{r}
+LICOR_Data_Raw
+```
+
+In this next chunk, generate a cleaned data set following the example below. As you examine your raw data and find things to fix, add a #Note to create a list of things to fix up. You can then use pipes and write code to fix each thing in your checklist. This is also where if you identified `filters` or data computations in your Hypothesis worksheet (e.g., choose only one species), you can apply those.
+
+One specific thing you may need to do is JOIN two of the datasets, using common columns to match observations to each other. In the field, we recorded `Tag_Num`, `Seedling_AB_etc`, and `Block` as unique observations to identify trees across multiple datasets. Trees which were measured in multiple ways can be used to run a regression analysis.
+
+Read about joins here: <https://r4ds.hadley.nz/joins>
+
+Check out the illustrative animations on this page: <https://github.com/gadenbuie/tidyexplain?tab=readme-ov-file#mutating-joins>
+
+```{r}
+LICOR_Data <- LICOR_Data_Raw |> 
+  #remove excess rows of NA at bottom of sheet 
+  drop_na(SYS_Date_YYYYMMDD) |> 
+  #rename columns with too long names
+  rename(YYMMDD = SYS_Date_YYYYMMDD) |> 
+  rename(Block = `USERDEF_Block Number_NA`) |> 
+  rename(Tag_Num = `USERDEF_Tag Number_NA` ) |> 
+  rename(Treatment = Treatment_NA_NA) |> 
+  rename(SapAB = Sapling_AB_etc_NA_NA) |> 
+  rename(Survivorship = Dead_Alive_NA_NA) |> 
+  rename(ETR = `FLUORO_ETR_umol+1m-2s-1`)
+#the columns we renamed above are the only ones we are interested in, so I will select just those ones. 
+
+LICOR_Data <- LICOR_Data |> 
+  select(YYMMDD, Block, Tag_Num, Treatment, SapAB, Survivorship, ETR)
+  
+
+```
+
+### Regression dataset
+
+Repeat the steps you took for your ANOVA data for your second data set of choice/
+
+```{r}
+# View data set
+```
+
+```{r}
+```
+
+## Exploratory Data Analysis
+
+Now that your data is (probably, mostly!) clean, it is time to explore your data! Feel free to explore not just the variables/data set relevant to your research question, but to explore variables your teammates are examining as well. Use this space to generate more questions, identify if there are more things to fix in your data cleaning, etc.
+
+Not sure where to start?
+
+- Make a histogram of each variable and write down your observations
+
+- Plot variables against each other to explore relationships (boxplots and scatterplots are a good starting point)
+
+- Use facet_grid to explore different groupings of data
+
+**There are no wrong answers! If you make 3+ graphs and show you're thinking critically about them, you will get full credit for this assignment.**
+
+Go for it!
+
+**ANOVA data exploring**
+
+```{r}
+LICOR_Data |> 
+  ggplot() +
+  aes(x = Treatment, y = ETR) +
+  geom_boxplot()
+
+```
+
+This is giving me an absolutely insane graph, regardless of which kind of geom I put there. So, I'm thinking that either there is something seriously wrong with my data or my computer is freaking out. What I expected to see: That there would be a difference in median ETR over treatments. I wasn't sure which kind of difference I expected to see, but probably a higher ETR in the habitat types with more sunlight and more soil moisture. What I did get shows that there's something in my data I need to fix before I'll be able to do any analysis on ETR.

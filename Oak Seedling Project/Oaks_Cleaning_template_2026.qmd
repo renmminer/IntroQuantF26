@@ -271,13 +271,15 @@ Soil_Data <- Soil_Data |>
         4.  View your data with histograms.
 
 ```{r}
-#because I wasn't able to convert the VWC columns into number type data, the min max values dont tell us anything because R doesn't read the values as numbers. But I will try to make it a histogram. 
+#because I wasn't able to convert the VWC columns into number type data, the min max values dont tell us anything because R doesn't read the values as numbers. 
 
 ggplot(Soil_Data)+
-  aes( x = YYMD, fill = Treatment)+
-  geom_histogram()
+  aes( x = YYMD, y= VWC1_perc, na.rm = TRUE)+
+  geom_boxplot()
 
 ```
+
+I am not sure what this is telling me becuase its not actually a boxplot, like I expected it to be. What I do see is that the later date has higher minimum and maximum VWC values, which makes sense given that the soil moisture for that date was (probably, based on when the rain storm happened) higher.
 
 ### ANOVA dataset
 
@@ -306,18 +308,13 @@ LICOR_Data <- LICOR_Data_Raw |>
   rename(Treatment = Treatment_NA_NA) |> 
   rename(SapAB = Sapling_AB_etc_NA_NA) |> 
   rename(Survivorship = Dead_Alive_NA_NA) |> 
-  rename()
+  rename(ETR = `FLUORO_ETR_umol+1m-2s-1`)
+#the columns we renamed above are the only ones we are interested in, so I will select just those ones. 
+
+LICOR_Data <- LICOR_Data |> 
+  select(YYMMDD, Block, Tag_Num, Treatment, SapAB, Survivorship, ETR)
   
-  
 
-
-
-
-  # use notes like this to create a checklist of the things that need to be fixed, then you can fill in code between each line as you fix them. 
-
-  # Thing to fix #2
-
-  # Thing to fix #3
 ```
 
 ### Regression dataset
@@ -329,9 +326,6 @@ Repeat the steps you took for your ANOVA data for your second data set of choice
 ```
 
 ```{r}
-Data <- _Raw |> 
-   
-  #Things to Fix
 ```
 
 ## Exploratory Data Analysis
@@ -350,6 +344,14 @@ Not sure where to start?
 
 Go for it!
 
+**ANOVA data exploring**
+
 ```{r}
+LICOR_Data |> 
+  ggplot() +
+  aes(x = Treatment, y = ETR) +
+  geom_boxplot()
 
 ```
+
+This is giving me an absolutely insane graph, regardless of which kind of geom I put there. So, I'm thinking that either there is something seriously wrong with my data or my computer is freaking out. What I expected to see: That there would be a difference in median ETR over treatments. I wasn't sure which kind of difference I expected to see, but probably a higher ETR in the habitat types with more sunlight and more soil moisture. What I did get shows that there's something in my data I need to fix before I'll be able to do any analysis on ETR.
