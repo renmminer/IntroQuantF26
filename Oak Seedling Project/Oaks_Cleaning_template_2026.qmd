@@ -221,7 +221,11 @@ In this section we will look at and clean up each of the data sets you identifie
     #I also want to rename the dataframe so I know its for soil data
 
     Soil_Data<-Moist_Data_Raw |> 
+      drop_na(Date) |> #drop any rows without date, as the rows without date are the rows that are entirely NA
       select(Date, Block, Treatment, VWC1_perc, VWC2_perc, VWC3_perc)
+
+
+
     ```
 
 2.  Column names
@@ -229,9 +233,13 @@ In this section we will look at and clean up each of the data sets you identifie
     1.  Are your column names tidy (i.e., have no punctuation or spaces, consistent capitals)?
         - `rename()` to fix column names
         - Recommendation: rename some of those messy LICOR columns to more useful and memorable ones!
-          - Column names for soil moisture data are fine.
 
-3.  Data types
+```{r}
+Soil_Data <- Soil_Data |> 
+  rename(YYMD = Date) #why I did this: when I type Date in, R has a lot of functions called date that come up, and I want my column to come up 
+```
+
+1.  Data types
 
     1.  Are your columns in the correct format?
         - `typeof(data$variable)` or `glimpse()` to check column data type
@@ -247,23 +255,14 @@ In this section we will look at and clean up each of the data sets you identifie
     ```{r}
     glimpse(Soil_Data)
 
-    #Date, treatment, and block are correct. 
-    #VWC columns are not correct- these are listed as characters but should be numeric data types. Upon further examination, I see that its because some of the values are NA. I can't seem to find a way to get the NA values ommited without losing entire columns and rows, so I'm going to jump forward a bit by creating the mean VWC for each block (since I know this is what I plan to use later in my analysis). This way, Ill have a mean VWC instead of three VWCs, some of which are NA values. 
-
+    unique(Soil_Data$VWC1_perc)
 
     Soil_Data |> 
-      mutate(Avg_VWC = case_when(
-        VWC1_perc == "NA" ~ ((VWC2_perc + VWC3_perc)/2),
-        VWC2_perc == "NA" ~ ((VWC_1perc + VWC3_perc)/2),
-        VWC3_perc == "NA" ~ ((VWC1_perc + VWC2_perc)/2),
-        VWC1_perc != "NA" & VWC2_perc != "NA" & VWC3_perc != "NA" ~ ((VWC1_perc + VWC2_perc + VWC3_perc)/2)
-        )
-      )
-     
-
+      mutate(VWC1_perc = factor())
+    #I cannot for the life of me get VWC1, 2, and 3 to convert into number type columns. But Ive spent two days on this so Im going to move on for now. 
     ```
 
-4.  Irregular Values
+2.  Irregular Values
 
     1.  Do all the values make sense for your data set (e.g., outliers)
         1.  `summary(df$variable)` gives the min & max and other values to see IF there is a weird value
@@ -271,12 +270,21 @@ In this section we will look at and clean up each of the data sets you identifie
         3.  If you find something weird, check it against the original data sheets, correct or remove with `filter()` if appropriate.
         4.  View your data with histograms.
 
+```{r}
+#because I wasn't able to convert the VWC columns into number type data, the min max values dont tell us anything because R doesn't read the values as numbers. But I will try to make it a histogram. 
+
+ggplot(Soil_Data)+
+  aes( x = YYMD, fill = Treatment)+
+  geom_histogram()
+
+```
+
 ### ANOVA dataset
 
 You may be either examining `SPAD_Data_Raw`, `Height_Data_Raw`, `LICOR_Data_Raw`, or `Moist_Data_Raw` for your ANOVA question. Examine your data set using the diagnostic functions I've given you above in the How to Examine and Clean Data section.
 
 ```{r}
-
+LICOR_Data_Raw
 ```
 
 In this next chunk, generate a cleaned data set following the example below. As you examine your raw data and find things to fix, add a #Note to create a list of things to fix up. You can then use pipes and write code to fix each thing in your checklist. This is also where if you identified `filters` or data computations in your Hypothesis worksheet (e.g., choose only one species), you can apply those.
@@ -288,8 +296,23 @@ Read about joins here: <https://r4ds.hadley.nz/joins>
 Check out the illustrative animations on this page: <https://github.com/gadenbuie/tidyexplain?tab=readme-ov-file#mutating-joins>
 
 ```{r}
-Height_Data <- Height_Data_Raw |> 
+LICOR_Data <- LICOR_Data_Raw |> 
+  #remove excess rows of NA at bottom of sheet 
+  drop_na(SYS_Date_YYYYMMDD) |> 
+  #rename columns with too long names
+  rename(YYMMDD = SYS_Date_YYYYMMDD) |> 
+  rename(Block = `USERDEF_Block Number_NA`) |> 
+  rename(Tag_Num = `USERDEF_Tag Number_NA` ) |> 
+  rename(Treatment = Treatment_NA_NA) |> 
+  rename(SapAB = Sapling_AB_etc_NA_NA) |> 
+  rename(Survivorship = Dead_Alive_NA_NA) |> 
+  rename()
   
+  
+
+
+
+
   # use notes like this to create a checklist of the things that need to be fixed, then you can fill in code between each line as you fix them. 
 
   # Thing to fix #2
