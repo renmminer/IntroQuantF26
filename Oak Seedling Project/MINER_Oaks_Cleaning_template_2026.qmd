@@ -258,7 +258,11 @@ Soil_Data <- Soil_Data |>
     unique(Soil_Data$VWC1_perc)
 
     Soil_Data |> 
-      mutate(VWC1_perc = factor())
+      mutate(VWC1_perc = as.double(VWC1_perc))
+    Soil_Data |> 
+      mutate(VWC2_perc = as.double(VWC2_perc))
+    Soil_Data |> 
+      mutate(VWC3_perc = as.double(VWC3_perc))
     #I cannot for the life of me get VWC1, 2, and 3 to convert into number type columns. But Ive spent two days on this so Im going to move on for now. 
     ```
 
@@ -313,6 +317,9 @@ LICOR_Data <- LICOR_Data_Raw |>
 
 LICOR_Data <- LICOR_Data |> 
   select(YYMMDD, Block, Tag_Num, Treatment, SapAB, Survivorship, ETR)
+
+LICOR_Data <- LICOR_Data |> 
+  mutate(ETR = as.double(ETR))
   
 
 ```
