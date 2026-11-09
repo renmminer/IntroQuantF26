@@ -146,7 +146,7 @@ LICOR_Data <- LICOR_Data |>
   #Since I'm doing rain event, I want a before/after categorical variable
   mutate(Before_After = case_when(
     Date == "2026-10-08" ~ "Before",
-    Date == "2026-10-21" ~ "After"
+    Date == "2026-10-15" ~ "After"
   ))
 
 
@@ -175,16 +175,47 @@ In this section:
 Tests before the ANOVA
 
 ```{r}
+# Build the linear model
+ETR_ANOVA_Model  <- lm(log(ETR)~ Treatment * Before_After, data = LICOR_Data)
+#I did log(ETR) becuase the residuals of ETR looks crazy, this one looks a lot more normal 
+
+
+plot(ETR_ANOVA_Model, which = 2)
+
+# Create a QQ plot of residuals
+ggpubr::ggqqplot(residuals(ETR_ANOVA_Model))
+```
+
+Next, test for the homogeneity of variance
+
+```{r}
+plot(ETR_ANOVA_Model, which = 1)
 
 LICOR_Data |> 
-  ggplot() +
-  aes(x = Treatment, y = ETR) +
-  geom_boxplot()+
-  facet_wrap(LICOR_Data$Date)
+  rstatix::levene_test(log(ETR) ~Treatment*Before_After )
+#large p value means there is homogeneity of variance 
 ```
+
+Now, we run the ANOVA
 
 ```{r}
 
+#run the anova on the model
+anova(ETR_ANOVA_Model)
+
+```
+
+From this we see that the Treatment and the relation to rain event (Before/After) were highly significant (TINY p-value), while the Treatment:Before_After (so the interaction) is significant (p-value = 0.015).
+
+Now a graph! Let's do a boxplot, because those are cool
+
+```{r}
+ LICOR_Data |> 
+   ggplot()+
+   aes(x = Treatment, y = ETR)+
+   geom_boxplot()+
+   facet_wrap(Before_After)
+ #IDK why this doesn't recognize the Before_After object, I'm 90% certain I have the syntax here right T.T 
 ```
 
 ### Linear Regression
