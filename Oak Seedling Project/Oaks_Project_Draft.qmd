@@ -1,13 +1,11 @@
 ---
 title: "Oaks_Project_Draft"
 Author: "Ren Miner"
-last modified: November 8, 2026
+last modified: November 9, 2026
 format: html
 ---
 
 ## Oak Seedling Final Project DRAFT
-
-### Summary Table
 
 ### Data Loading and Cleaning
 
@@ -113,7 +111,7 @@ Soil_Data |>
   geom_boxplot()
 ```
 
-Now to clean the LICOR data (T.T)\
+Now to clean the LICOR data \
 
 ```{r}
 LICOR_Data <- LICOR_Data_Raw |> 
@@ -215,10 +213,9 @@ Now a graph! Let's do a boxplot, because those are cool
    aes(x = Treatment, y = ETR)+
    geom_boxplot()+
    facet_wrap(Before_After)
- #IDK why this doesn't recognize the Before_After object, I'm 90% certain I have the syntax here right T.T 
 ```
 
-### Linear Regression
+### Multivariate Regression
 
 Testing for the following relationship: ETR \~ Soil Moisture \* Habitat Type
 
@@ -226,22 +223,93 @@ In this section:
 
 - Assumption/Normality tests
 
-- Linear Regression
+- Regression
 
 - Figure
 
-```{r}
+First, I need a data frame that has both the average VWC% from the soil moisture data, and the habitat type and ETR from the LICOR data. The easiest way that I can see to do that (Since the two data frames are different dimensions) is to add the soil VWC column into the licor data using mutate)
 
+```{r}
+ETR_VWC_Data <- LICOR_Data |> 
+  mutate(Soil_VWC = case_when(
+    Block == "001" & Treatment == "DT" ~0.300,
+    Block == "001" & Treatment == "OS" ~ 1.367,
+    Block == "001" & Treatment == "AC" ~ 1.534,
+    Block == "002" & Treatment == "DT" ~ 1.833,
+    Block == "002" & Treatment ==  "OS" ~ 0.033,
+    Block == "003" & Treatment ==  "DT" ~2.433,
+    Block == "003" & Treatment == "OS" ~0.667,
+    Block == "003" & Treatment == "AC" ~ 1.600,
+    Block == "004" & Treatment == "DT" ~ 2.367,
+    Block == "004" & Treatment == "OS" ~ 1.000,
+    Block == "004" & Treatment == "AC" ~ 1.767,
+    Block == "005" & Treatment == "DT" ~ 9.800,
+    Block == "005" & Treatment == "OS" ~13.933,
+    Block == "006" & Treatment == "DT" ~9.333,
+    Block == "006" & Treatment == "OS" ~ 14.467,
+    Block == "006" & Treatment == "AC" ~5.867,
+    Block == "007" & Treatment == "DT" ~ 16.333,
+    Block == "007" & Treatment == "OS" ~12.167,
+    Block == "007" & Treatment == "AC" ~ 11.567,
+    Block == "008" & Treatment == "DT" ~16.367,
+    Block == "008" & Treatment == "OS" ~ 13.500,
+    Block == "008" & Treatment == "AC" ~11.267
+    ))
+```
+
+Now, we do our assumptions/normality tests for regression
+
+```{r}
+#Is there a relationship
+ETR_VWC_Data |> 
+  ggplot()+
+  aes(x=Soil_VWC, y = ETR)+
+  geom_point()
+  
+ETR_VWC_Data |> 
+  ggplot()+
+  aes(x = Treatment, y = ETR)+
+  geom_point()
+```
+
+We can definitely see that there is a relationship between treatment and ETR and between soil moisture and ETR.
+
+```{r}
+#now, I'm going to test the different variables (treatment, moisture, treatment + moisture, and treatment * moisture) to find which creates the best fit for ETR 
+
+fit1 <- lm (ETR ~ Treatment, data = ETR_VWC_Data)
+fit2 <- lm(ETR ~ Soil_VWC, data = ETR_VWC_Data)
+fit3 <- lm(ETR~Treatment + Soil_VWC, data = ETR_VWC_Data)
+fit4 <- lm(ETR ~ Treatment * Soil_VWC, data = ETR_VWC_Data)
+
+summary(fit1) #this gives us a p value of 0.0027
+summary(fit2) #this gives us a p value of 0.6284
+summary(fit3) #TINY p value: 5.848e-05
+summary(fit4) #very small p value: 0.00018
+
+
+anova(fit3, fit4) #from the ANOVA we see that there is not a significant difference between fit 3 and fit 4 MEANING the soil moisture and treatment are not interacting with each other, but both are impacting the ETR. 
 ```
 
 ```{r}
 
+#to get the data we need for reporting our results, I'll just re-run summary 
+
+summary(fit3)
+#What we need here: R-square, F, degrees of freedom, p value
+plot()
+
 ```
 
+Multiple regression analysis was used to test if habitat type (aka treatment) and soil moisture impacted photosynthesis rate of seedlings. Photosynthesis rate was reported in ETR measurements, with higher ETR indicating more photosynthesis. The results indicated that treatment plus habitat type explained 15 % of variance (R2 = 0.1503, F = (3, 136) = 8.018, p = 5.85 e-05).
+
+finally, a plot
+
 ```{r}
-
-```
-
-```{r}
-
+#scatter plot of  x= vwc, y= etr, facet by treatment 
+ETR_VWC_Data |> 
+  ggplot()+
+  aes(x=Soil_VWC, y = ETR)+
+  geom_point()+
+  facet_wrap(Treatment)
 ```
