@@ -1,0 +1,216 @@
+---
+title: "Oaks_Project_Draft"
+Author: "Ren Miner"
+last modified: November 8, 2026
+format: html
+---
+
+## Oak Seedling Final Project DRAFT
+
+### Summary Table
+
+### Data Loading and Cleaning
+
+In this section:
+
+- reading in the data
+
+- loading packages
+
+- cleaning the data
+
+```{r}
+#loading packages to use in this project
+library(tidyverse)
+library(readxl)
+library(dplyr)
+```
+
+```{r}
+#reading in the soil moisture data 
+Moist_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "Soil Moisture")
+
+#reading in the LICOR data
+#thank you professor for putting the LICOR data read in code together 
+LICOR_Data_Raw_NAMES <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx",              
+             sheet = "LICOR", 
+             n_max = 3, 
+             col_names = FALSE, 
+             col_types = "text") |> 
+  summarise(across(.fns = paste, collapse = "_")) |> 
+  unlist() |> 
+  unname()
+
+LICOR_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx",  
+             sheet = "LICOR", 
+             skip = 3, 
+             col_names = LICOR_Data_Raw_NAMES,
+             col_types = "text")
+
+
+ALL_Licor_NAMES <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "ALL_Licor_Ignore", 
+             n_max = 3, 
+             col_names = FALSE, 
+             col_types = "text") |> 
+  summarise(across(.fns = paste, collapse = "_")) |> 
+  unlist() |> 
+  unname()
+
+ALL_Licor <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "ALL_Licor_Ignore", 
+             skip = 3, 
+             col_names = ALL_Licor_NAMES, 
+             col_types = "text")
+
+LICOR_Data_Raw <- full_join(LICOR_Data_Raw, ALL_Licor)
+
+```
+
+Cleaning the soil moisture data:
+
+```{r}
+Moist_Data_Raw #view the data so I remember what I need to do to clean it 
+
+#First, I need to remove all of the excess NA values at the bottom 
+Soil_Data <- Moist_Data_Raw |> 
+  drop_na(Date) |> 
+#Now, I am only interested in the date, block, treatment, and VWC% readings (three per block)
+  select(Date, Block, Treatment, VWC1_perc, VWC2_perc, VWC3_perc) |> 
+  #the VWC values are currently chr, and I need them in double format
+  mutate(VWC1_perc= as.double(VWC1_perc)) |> 
+  mutate(VWC2_perc = as.double(VWC2_perc)) |> 
+  mutate(VWC3_perc = as.double(VWC3_perc)) |> 
+  #Making date character so it'll work when I create a before/after column 
+  mutate(Date = as.character(Date)) |> 
+#Since I'm doing rain event, I want a before/after categorical variable
+  mutate(Before_After = case_when(
+    Date == "2026-10-08" ~ "Before",
+    Date == "2026-10-21" ~ "After"
+  ))
+
+
+#now that Ive done all of that, I also realized that I need one VWC per treatment/block combo (so each row)
+
+Soil_Data <- Soil_Data |> 
+  rowwise() |> 
+  mutate(Soil_VWC = mean(c(VWC1_perc , VWC2_perc, VWC3_perc), na.rm = TRUE))
+
+```
+
+Using this chunk to test that all of my data cleaning worked how I wanted it to, by making sure my graph works. This might be the graph I use later, idk
+
+```{r}
+Soil_Data |> 
+  ggplot()+
+  aes(x=Before_After, y= Soil_VWC)+
+  geom_boxplot()
+```
+
+Now to clean the LICOR data (T.T)\
+
+```{r}
+LICOR_Data <- LICOR_Data_Raw |> 
+  #remove excess rows of NA at bottom of sheet 
+  drop_na(SYS_Date_YYYYMMDD) |> 
+  #rename columns with too long names
+  rename(Date = SYS_Date_YYYYMMDD) |> 
+  rename(Block = `USERDEF_Block Number_NA`) |> 
+  rename(Tag_Num = `USERDEF_Tag Number_NA` ) |> 
+  rename(Treatment = Treatment_NA_NA) |> 
+  rename(SapAB = Sapling_AB_etc_NA_NA) |> 
+  rename(Survivorship = Dead_Alive_NA_NA) |> 
+  rename(ETR = `FLUORO_ETR_umol+1m-2s-1`)
+#the columns we renamed above are the only ones we are interested in, so I will select just those ones. 
+
+LICOR_Data <- LICOR_Data |> 
+  select(Date, Block, Tag_Num, Treatment, SapAB, Survivorship, ETR)
+
+#A few more minor fixes
+#First, some values are not in the format I want them in 
+#Next, there are some rows with treatment as either NA or ??, neither of which are helpful. Since one of my vairables is treatment, if a row doesn't have treatment at all, it isn't useful to me, so I'm just going to remove it. 
+LICOR_Data <- LICOR_Data |> 
+  mutate(ETR = as.double(ETR)) |> 
+  mutate(Tag_Num = as.factor(Tag_Num)) |> 
+  drop_na(Treatment) |> 
+  filter(Treatment != "??") |> 
+  #Next, I need a B/A column for before after, since that is also one of the variables
+  #Making date character so it'll work when I create a before/after column 
+  mutate(Date = as.character(Date)) |> 
+  #Since I'm doing rain event, I want a before/after categorical variable
+  mutate(Before_After = case_when(
+    Date == "2026-10-08" ~ "Before",
+    Date == "2026-10-21" ~ "After"
+  ))
+
+
+
+
+```
+
+```{r}
+LICOR_Data
+```
+
+### ANOVA
+
+Testing the following relationship: ETR \~ rain event \* habitat type
+
+I want to test it with the interaction, as I expect the habitat type to have impacted how the rain water is received by the plant (the canopy/dead tree might keep it from getting as much rain, or might shield the soil from direct sunlight that would be causing evaporation).
+
+In this section:
+
+- Assumptions/ Normality tests
+
+- ANOVA
+
+- Figure
+
+Tests before the ANOVA
+
+```{r}
+
+LICOR_Data |> 
+  ggplot() +
+  aes(x = Treatment, y = ETR) +
+  geom_boxplot()+
+  facet_wrap(LICOR_Data$Date)
+```
+
+```{r}
+
+```
+
+### Linear Regression
+
+Testing for the following relationship: ETR \~ Soil Moisture \* Habitat Type
+
+In this section:
+
+- Assumption/Normality tests
+
+- Linear Regression
+
+- Figure
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
