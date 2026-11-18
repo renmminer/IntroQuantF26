@@ -111,7 +111,7 @@ Soil_Data |>
   geom_boxplot()
 ```
 
-Now to clean the LICOR data \
+Now to clean the LICOR data\
 
 ```{r}
 LICOR_Data <- LICOR_Data_Raw |> 

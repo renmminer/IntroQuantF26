@@ -431,7 +431,7 @@ If we plug these values into our equation above, we get a fitted line with the e
 `abund = 2.060*light - 0.040*light^2 - 2.005`
 
 ```{r}
-bbel_plot +
+bbel_plot <-
   geom_smooth(method = "lm", formula = y ~ x + I(x^2), se = FALSE)
 ```
 
