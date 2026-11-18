@@ -131,8 +131,40 @@ Let's do the ANOVA!
 ```{r}
 anova(SPAD_ANOVA_Model)
 
+#I also want to create an aov model that I will use later in my Tukey HSD 
 SPAD_Model_aov <- aov(mean_SPAD ~ Treatment * Before_After, data = SPAD_Data)
 summary(SPAD_Model_aov)
 ```
 
 The results we get tells us that Treatment has a significant effect on mean_SPAD, and Treatment combined with Before_After has a REALLY significant effect.
+
+Now, which treatment/date combinations are statistically different?
+
+```{r}
+#Tukey HSD fo determine which pairs are different from each other 
+TukeyHSD(SPAD_Model_aov)
+```
+
+Of the same treatment before-after pairs, the following are the only ones that were significant:
+
+AC Before-After (p=0.04), OS Before-After (p=0.03)
+
+Of the ones that were the same date, here are the significant ones:
+
+OS Before-NR Before (p=0.03), OS Before - DT Before (p=0.001), OS Before-AC Before (p=0.00002)
+
+There were other pairs that were statistically different. However, if they did not have an overlap (so were either the same date or the same micro habitat), I do not feel that it is important in my analysis.
+
+Now for the figure!
+
+```{r}
+SPAD_Data |> 
+  ggplot()+
+  aes(x=Treatment, y = mean_SPAD, fill = fct_rev(Before_After))+
+  geom_boxplot()+
+  scale_fill_manual(values=c("Before"="skyblue", "After"="midnightblue")) +
+  labs( y = "Leaf SPAD",
+        x = "Microhabitat",
+        title = "SPAD by Treatment and Rain Event",
+        fill = "Relation to Rain Event") #labs is giving us labels on our graph 
+```
