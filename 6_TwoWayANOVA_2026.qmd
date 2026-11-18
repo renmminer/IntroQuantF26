@@ -129,8 +129,7 @@ Looks pretty okay!
 model_pw_lm <- lm(height ~ plant * water, pw)
 anova(model_pw_lm)
 
-model_pw_aov <- aov(height ~ plant * water, pw)
-summary(model_pw_aov)
+
 ```
 
 At first pass, it looks like:
