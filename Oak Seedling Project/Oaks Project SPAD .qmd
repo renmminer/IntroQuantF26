@@ -1,0 +1,138 @@
+---
+title: "OAKS PROJECT for real this time"
+format: html
+editor: visual
+Author: "Ren Miner"
+---
+
+## Coast Live Oak Data Analysis 
+
+### Data Loading and Cleaning 
+
+```{r}
+#loading packages to use in this project
+library(tidyverse)
+library(readxl)
+library(dplyr)
+```
+
+```{r}
+#reading in the soil moisture data 
+Moist_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "Soil Moisture")
+
+#reading in the SPAD data 
+SPAD_Data_Raw <- 
+  read_excel("Oak Data Entry MCRS Field Trip.xlsx", 
+             sheet = "SPAD", 
+             na = "NA")
+```
+
+Now to Clean! First, the soil moisture data
+
+```{r}
+Moist_Data_Raw #view the data so I remember what I need to do to clean it 
+
+#First, I need to remove all of the excess NA values at the bottom 
+Soil_Data <- Moist_Data_Raw |> 
+  drop_na(Date) |> 
+  #Now, I am only interested in the date, block, treatment, and VWC% readings (three per block)
+  select(Date, Block, Treatment, VWC1_perc, VWC2_perc, VWC3_perc) |> 
+  #the VWC values are currently chr, and I need them in double format
+  mutate(VWC1_perc= as.double(VWC1_perc)) |> 
+  mutate(VWC2_perc = as.double(VWC2_perc)) |> 
+  mutate(VWC3_perc = as.double(VWC3_perc)) |> 
+  #Making date character so it'll work when I create a before/after column 
+  mutate(Date = as.character(Date)) |> 
+  #Since I'm doing rain event, I want a before/after categorical variable
+  mutate(Before_After = case_when(
+    Date == "2026-10-08" ~ "Before",
+    Date == "2026-10-21" ~ "After"
+  ))
+
+
+#now that Ive done all of that, I also realized that I need one VWC per treatment/block combo (so each row)
+
+Soil_Data <- Soil_Data |> 
+  rowwise() |> 
+  mutate(Soil_VWC = mean(c(VWC1_perc , VWC2_perc, VWC3_perc), na.rm = TRUE))
+```
+
+Next, the SPAD data
+
+```{r}
+SPAD_Data_Raw #viewing it so I can see what needs to be done 
+
+#only include the rows for date, block, treatment, leaf 1-6, dead/alive
+SPAD_Data <- SPAD_Data_Raw |> 
+  select(Date, Block, Treatment, Dead_Alive, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |> 
+  #Making date character so it'll work when I create a before/after column 
+  mutate(Date = as.character(Date)) |> 
+  #create column for Before/After rain event 
+  mutate(Before_After = case_when(
+    Date == "2026-10-08" ~ "Before",
+    Date == "2026-10-15" ~ "After"
+  ))  |> 
+  #filter out dead seedlings 
+  filter(Dead_Alive == "Alive") |> 
+  #now to create one SPAD reading for each sapling 
+  rowwise() |> 
+  mutate(mean_SPAD = mean(c(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6), na.rm = TRUE))
+```
+
+### ANOVA
+
+Testing the following relationship: SPAD \~ rain event \* habitat type
+
+I want to test it with the interaction, as I expect the habitat type to have impacted how the rain water is received by the plant (the canopy/dead tree might keep it from getting as much rain, or might shield the soil from direct sunlight that would be causing evaporation).
+
+In this section:
+
+- Assumptions/ Normality tests
+
+- ANOVA
+
+- Figure
+
+Assumptions Check
+
+```{r}
+#visualizing the data 
+SPAD_Data |> 
+  ggplot()+
+  aes(x=Treatment, y = mean_SPAD, fill = Before_After)+
+  geom_boxplot()
+```
+
+```{r}
+
+# Build the linear model
+SPAD_ANOVA_Model  <- lm(mean_SPAD ~ Treatment * Before_After, data = SPAD_Data)
+#plot the model
+plot(SPAD_ANOVA_Model, which = 2)
+# Create a QQ plot of residuals
+ggpubr::ggqqplot(residuals(SPAD_ANOVA_Model))
+
+#run LAvene's test for homogeneity of variance 
+plot(SPAD_ANOVA_Model, which = 1)
+
+SPAD_Data |>  rstatix::levene_test(mean_SPAD ~ Treatment*Before_After)
+```
+
+Results of assumption check:
+
+- Residuals of model look good
+
+- P-value from Lavene's test is 0.009, so it is significant. I will move forward with doing the ANOVA, but will make note of this in the final paper.
+
+Let's do the ANOVA!
+
+```{r}
+anova(SPAD_ANOVA_Model)
+
+SPAD_Model_aov <- aov(mean_SPAD ~ Treatment * Before_After, data = SPAD_Data)
+summary(SPAD_Model_aov)
+```
+
+The results we get tells us that Treatment has a significant effect on mean_SPAD, and Treatment combined with Before_After has a REALLY significant effect.
