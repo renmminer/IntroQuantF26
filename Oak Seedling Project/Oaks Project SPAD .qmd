@@ -195,6 +195,78 @@ In that column, place values from the Soil_VWC column in Soil_Data, based on row
 #joinging SPAD_Data and Soil_Data, to get a frame that has Soil_Data for each row. Soil VWC values have one value for each block-treatment combo, so there will be repeats in the data frame 
 
 SPAD_Soil_Data <- SPAD_Data  |> 
-  left_join(Soil_Data, by = c("Block", "Treatment", "Date", "Before_After"), relationship = "many-to-many") 
+  left_join(Soil_Data, by = c("Block", "Treatment", "Before_After"), relationship = "many-to-many") |> 
+  drop_na(Soil_VWC) #several NR treatments did not get soil VWC perc taken, resulting in a lot of NA values that I don't want to deal with. 
+
+
   
 ```
+
+Assumptions/Normality Tests
+
+```{r}
+#Visualize the relationshiop 
+SPAD_Soil_Data|> 
+  ggplot()+
+  aes(x = Soil_VWC, y = mean_SPAD)+
+  geom_point()
+
+SPAD_Soil_Data|> 
+  ggplot()+
+  aes(x = Treatment, y = mean_SPAD)+
+  geom_boxplot()
+```
+
+From the scatterplot, We can see two values that are far removed from the rest of the values. However, when I look, I see that they are in the open space treatment and from the before date, so a low VWC and low SPAD makes sense.
+
+From the box plot, it does look like there may bot be a significant difference between treatments, but maybe there is with a combination between treatments and soil moisture
+
+```{r}
+SPAD_Soil_Data|> 
+  ggplot()+
+  aes(x = Soil_VWC, y = mean_SPAD)+
+  geom_point()+
+  facet_wrap("Treatment")
+
+```
+
+```{r}
+#create a linear model for the relationship
+SPADSoillm <- lm(mean_SPAD~Soil_VWC * Treatment, data = SPAD_Soil_Data)
+
+summary(SPADSoillm) #R2 = 0.3394
+
+#this gave us a VERY low R2 value, so I'm going to create a few more linear models and see if those give us better results 
+
+SPADSoillm2 <- lm(mean_SPAD ~ Soil_VWC + Treatment, data = SPAD_Soil_Data)
+SPADSoillm3 <- lm(mean_SPAD ~ Soil_VWC, data = SPAD_Soil_Data)
+SPADSoillm4 <- lm(mean_SPAD ~ Treatment, data = SPAD_Soil_Data)
+
+summary(SPADSoillm2) #R2 = 0.115
+summary(SPADSoillm3) #R2 = 0.007 
+summary(SPADSoillm4) #R2 = 0.1143
+
+
+AllTheThingslm<- lm(mean_SPAD ~ Soil_VWC * Before_After * Treatment, data = SPAD_Soil_Data)
+summary(AllTheThingslm) #R2 is 0.3966
+
+
+#So, the lm that is looking at Soil VWC, rain event, AND treatment is the one that has the line of best fit 
+```
+
+```{r}
+plot(AllTheThingslm)
+summary(AllTheThingslm)
+```
+
+The importnat information here:
+
+- R2= 0.3966
+
+- p-value = 0.0015
+
+- F statistic = 3.084 on 13 and 61 DF
+
+- se of residuals = 5.246
+
+Let's make a figure!
