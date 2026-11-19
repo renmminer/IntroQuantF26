@@ -5,9 +5,9 @@ editor: visual
 Author: "Ren Miner"
 ---
 
-## Coast Live Oak Data Analysis 
+## Coast Live Oak Data Analysis
 
-### Data Loading and Cleaning 
+### Data Loading and Cleaning
 
 ```{r}
 #loading packages to use in this project
@@ -167,4 +167,34 @@ SPAD_Data |>
         x = "Microhabitat",
         title = "SPAD by Treatment and Rain Event",
         fill = "Relation to Rain Event") #labs is giving us labels on our graph 
+```
+
+## Multivariate Regression
+
+### 
+
+Testing for the following relationship: SPAD \~ Soil Moisture \* Habitat Type
+
+In this section:
+
+- Assumption/Normality tests
+
+- Regression
+
+- Figure
+
+First, I need a data the SPAD data to have the soil moisture data
+
+What I'm trying to tell R:
+
+Create a new column in SPAD Data
+
+In that column, place values from the Soil_VWC column in Soil_Data, based on rows with matching Block AND Treatment values
+
+```{r}
+#joinging SPAD_Data and Soil_Data, to get a frame that has Soil_Data for each row. Soil VWC values have one value for each block-treatment combo, so there will be repeats in the data frame 
+
+SPAD_Soil_Data <- SPAD_Data  |> 
+  left_join(Soil_Data, by = c("Block", "Treatment", "Date", "Before_After"), relationship = "many-to-many") 
+  
 ```
