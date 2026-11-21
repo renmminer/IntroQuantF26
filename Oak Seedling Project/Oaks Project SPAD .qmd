@@ -66,7 +66,7 @@ SPAD_Data_Raw #viewing it so I can see what needs to be done
 
 #only include the rows for date, block, treatment, leaf 1-6, dead/alive
 SPAD_Data <- SPAD_Data_Raw |> 
-  select(Date, Block, Treatment, Dead_Alive, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6) |> 
+  select(Date, Block, Treatment, Dead_Alive, Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6, Notes) |> 
   #Making date character so it'll work when I create a before/after column 
   mutate(Date = as.character(Date)) |> 
   #create column for Before/After rain event 
@@ -78,7 +78,19 @@ SPAD_Data <- SPAD_Data_Raw |>
   filter(Dead_Alive == "Alive") |> 
   #now to create one SPAD reading for each sapling 
   rowwise() |> 
-  mutate(mean_SPAD = mean(c(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6), na.rm = TRUE))
+  mutate(mean_SPAD = mean(c(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6), na.rm = TRUE))  
+  #remove the two outlier SPAD values that were from brown leaves 
+
+
+```
+
+outliertest
+
+```{r}
+#filtering out the outlier values in SPAD_Data
+#10 is just a random number that is more than the two outliers but less than the other values I wanted to keep 
+ SPAD_Data <- SPAD_Data |> 
+  filter(mean_SPAD > 10)
 ```
 
 ### ANOVA
@@ -118,42 +130,52 @@ ggpubr::ggqqplot(residuals(SPAD_ANOVA_Model))
 plot(SPAD_ANOVA_Model, which = 1)
 
 SPAD_Data |>  rstatix::levene_test(mean_SPAD ~ Treatment*Before_After)
+
+
 ```
 
 Results of assumption check:
 
 - Residuals of model look good
 
-- P-value from Lavene's test is 0.009, so it is significant. I will move forward with doing the ANOVA, but will make note of this in the final paper.
+- P-value from Levene's test is .294 so it is not significant. Levene's test checks homogeneity of varience, and getting a number larger than 0.05 means we have homegeneity of variance. This means we have met out assumptions and can move on to the anova.
 
 Let's do the ANOVA!
 
 ```{r}
 anova(SPAD_ANOVA_Model)
+summary(SPAD_ANOVA_Model)
 
 #I also want to create an aov model that I will use later in my Tukey HSD 
 SPAD_Model_aov <- aov(mean_SPAD ~ Treatment * Before_After, data = SPAD_Data)
 summary(SPAD_Model_aov)
+
+differentmodelaov <- aov(mean_SPAD ~ Treatment + Before_After, data = SPAD_Data)
 ```
 
-The results we get tells us that Treatment has a significant effect on mean_SPAD, and Treatment combined with Before_After has a REALLY significant effect.
+The results we get tells us that while the combination between Treatment and Before_After is significant, Before_After on its own is VERY significant.
 
 Now, which treatment/date combinations are statistically different?
 
 ```{r}
 #Tukey HSD fo determine which pairs are different from each other 
 TukeyHSD(SPAD_Model_aov)
+
 ```
 
-Of the same treatment before-after pairs, the following are the only ones that were significant:
+The following treatment/date pairs were statistically significant:
 
-AC Before-After (p=0.04), OS Before-After (p=0.03)
+AC before - AC after (p = 0.001), Ac before - NR after (p = 0.001), AC before - OS after (p = 0.007).
 
-Of the ones that were the same date, here are the significant ones:
+A few pairs were \~0.01 to 0.02 away from being statistically significant:
 
-OS Before-NR Before (p=0.03), OS Before - DT Before (p=0.001), OS Before-AC Before (p=0.00002)
+NR before - AC before (p = 0.069), AC before - DT after (p = 0.060)
 
-There were other pairs that were statistically different. However, if they did not have an overlap (so were either the same date or the same micro habitat), I do not feel that it is important in my analysis.
+None of the Treatment pairs (not being grouped by date) we significant.
+
+Before-After on its own was very significant (p= 0.003)
+
+So, my hypothesis that treatment and date were interacting is (mostly) rejectable, although it looks like the AC treatment before is significantly different from all of the after values. This isn't surprising, given that the NR, OS, and DT are similar in cover from sun and heat, while a living adult canopy would change the temperature and water in soil.
 
 Now for the figure!
 
@@ -162,18 +184,33 @@ SPAD_Data |>
   ggplot()+
   aes(x=Treatment, y = mean_SPAD, fill = fct_rev(Before_After))+
   geom_boxplot()+
-  scale_fill_manual(values=c("Before"="skyblue", "After"="midnightblue")) +
+  scale_fill_manual(values=c("Before"="skyblue", "After"="skyblue4")) +
   labs( y = "Leaf SPAD",
         x = "Microhabitat",
         title = "SPAD by Treatment and Rain Event",
         fill = "Relation to Rain Event") #labs is giving us labels on our graph 
 ```
 
+This graph does a great job at showing how all of the means are similar, with the exception of the AC Before pair. However, after the results from the ANOVA, I'd also like a graph that is just before_after without treatment being considered.
+
+```{r}
+SPAD_Data |> 
+  ggplot() +
+  aes(x= fct_rev(Before_After), y = mean_SPAD, fill = fct_rev(Before_After)) +
+  geom_boxplot() +
+  scale_fill_manual(values=c("Before"="skyblue", "After"="skyblue4"))+
+  expand_limits(y=0)+
+  labs( y = "Leaf SPAD",
+        x = "Before/After Rain Event",
+        title = "SPAD and Relation to Rain Event")
+  
+```
+
 ## Multivariate Regression
 
 ### 
 
-Testing for the following relationship: SPAD \~ Soil Moisture \* Habitat Type
+Testing for the following relationship: SPAD \~ Soil Moisture and Habitat Type
 
 In this section:
 
@@ -209,32 +246,28 @@ Assumptions/Normality Tests
 SPAD_Soil_Data|> 
   ggplot()+
   aes(x = Soil_VWC, y = mean_SPAD)+
-  geom_point()
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE)
 
 SPAD_Soil_Data|> 
   ggplot()+
   aes(x = Treatment, y = mean_SPAD)+
   geom_boxplot()
-```
 
-From the scatterplot, We can see two values that are far removed from the rest of the values. However, when I look, I see that they are in the open space treatment and from the before date, so a low VWC and low SPAD makes sense.
-
-From the box plot, it does look like there may bot be a significant difference between treatments, but maybe there is with a combination between treatments and soil moisture
-
-```{r}
-SPAD_Soil_Data|> 
+SPAD_Soil_Data |> 
   ggplot()+
   aes(x = Soil_VWC, y = mean_SPAD)+
   geom_point()+
-  facet_wrap("Treatment")
-
+  facet_wrap(vars(Treatment))
 ```
+
+From the box plot, it does look like there may not be a significant difference between means of treatments, but in the third graph (the scatter plot) it seems there may be a relationship between means of spad with both temp and soil vwc.
 
 ```{r}
 #create a linear model for the relationship
 SPADSoillm <- lm(mean_SPAD~Soil_VWC * Treatment, data = SPAD_Soil_Data)
 
-summary(SPADSoillm) #R2 = 0.3394
+summary(SPADSoillm) #R2 = 0.2901
 
 #this gave us a VERY low R2 value, so I'm going to create a few more linear models and see if those give us better results 
 
@@ -242,31 +275,71 @@ SPADSoillm2 <- lm(mean_SPAD ~ Soil_VWC + Treatment, data = SPAD_Soil_Data)
 SPADSoillm3 <- lm(mean_SPAD ~ Soil_VWC, data = SPAD_Soil_Data)
 SPADSoillm4 <- lm(mean_SPAD ~ Treatment, data = SPAD_Soil_Data)
 
-summary(SPADSoillm2) #R2 = 0.115
-summary(SPADSoillm3) #R2 = 0.007 
-summary(SPADSoillm4) #R2 = 0.1143
+summary(SPADSoillm2) #R2 = 0.1372
+summary(SPADSoillm3) #R2 = 0.095
+summary(SPADSoillm4) #R2 = 0.03
 
 
 AllTheThingslm<- lm(mean_SPAD ~ Soil_VWC * Before_After * Treatment, data = SPAD_Soil_Data)
-summary(AllTheThingslm) #R2 is 0.3966
+summary(AllTheThingslm) #R2 is 0.38
 
+SPADBFlm <- lm(mean_SPAD ~ Before_After, data = SPAD_Soil_Data)
+summary(SPADBFlm) #R2 is 0.116
 
-#So, the lm that is looking at Soil VWC, rain event, AND treatment is the one that has the line of best fit 
+#So, the lm that is looking at Soil VWC, rain event, AND treatment is the one that has the best line of best fit. However, for now I am going to just do the Soil plus treatment, then circle back to the everything model. 
 ```
 
 ```{r}
-plot(AllTheThingslm)
+
+summary(SPADSoillm2)
+coef(SPADSoillm2)["Soil_VWC"] * sd(SPAD_Soil_Data$Soil_VWC)/sd(SPAD_Soil_Data$mean_SPAD)
+
+```
+
+The important information here:
+
+for mean_SPAD \~ Soil_VWC + Treatment
+
+R2= 0.1372
+
+p-value = 0.037
+
+F = 2.704 (4, 68)
+
+Beta coeff for Soil_VWC is -0.375. Because Treatment is a categorical variable, there is no Beta coeff for that.
+
+Circling back to the everything model (SPAD as a response of soil vwc, treatment, and rain event)
+
+```{r}
+
 summary(AllTheThingslm)
 ```
 
 The importnat information here:
 
-- R2= 0.3966
+- R2= 0.3805
 
-- p-value = 0.0015
+- p-value = 0.00369
 
-- F statistic = 3.084 on 13 and 61 DF
+- F statistic= 2.788
 
-- se of residuals = 5.246
+I am, unfortunately, insane enough to try to graph this. So, plots and figure time!
 
-Let's make a figure!
+```{r}
+plot(AllTheThingslm, 2) #I just want the QQ plot 
+
+
+```
+
+```{r}
+SPAD_Soil_Data |> 
+  ggplot()+
+  aes(x = Soil_VWC, y = mean_SPAD, color = fct_rev(Before_After))+
+  geom_point()+
+  scale_color_manual(values=c("Before"="skyblue", "After"="skyblue4"))+
+  facet_wrap(vars(Treatment))+
+  labs( y = "Leaf SPAD",
+        x = "Soil Moisture Percent",
+        title = "SPAD, Soil Moisture, Treatment, and Rain Event",
+        color = "Relation to Rain Event")
+```
