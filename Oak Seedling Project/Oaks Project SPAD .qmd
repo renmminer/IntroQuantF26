@@ -39,6 +39,8 @@ Soil_Data <- Moist_Data_Raw |>
   drop_na(Date) |> 
   #Now, I am only interested in the date, block, treatment, and VWC% readings (three per block)
   select(Date, Block, Treatment, VWC1_perc, VWC2_perc, VWC3_perc) |> 
+  #the NR values are all from before rain event, so I'm removing them
+  filter(Treatment != "NR") |> 
   #the VWC values are currently chr, and I need them in double format
   mutate(VWC1_perc= as.double(VWC1_perc)) |> 
   mutate(VWC2_perc = as.double(VWC2_perc)) |> 
@@ -76,6 +78,8 @@ SPAD_Data <- SPAD_Data_Raw |>
   ))  |> 
   #filter out dead seedlings 
   filter(Dead_Alive == "Alive") |> 
+  #get rid of NR from this data frame as well
+  filter(Treatment != "NR") |> 
   #now to create one SPAD reading for each sapling 
   rowwise() |> 
   mutate(mean_SPAD = mean(c(Leaf1, Leaf2, Leaf3, Leaf4, Leaf5, Leaf6), na.rm = TRUE))  
@@ -83,8 +87,6 @@ SPAD_Data <- SPAD_Data_Raw |>
 
 
 ```
-
-outliertest
 
 ```{r}
 #filtering out the outlier values in SPAD_Data
@@ -165,11 +167,11 @@ TukeyHSD(SPAD_Model_aov)
 
 The following treatment/date pairs were statistically significant:
 
-AC before - AC after (p = 0.001), Ac before - NR after (p = 0.001), AC before - OS after (p = 0.007).
+AC before - AC after (p = 0.001), AC before - OS after (p = 0.007).
 
-A few pairs were \~0.01 to 0.02 away from being statistically significant:
+One pairs was \~0.01 to 0.02 away from being statistically significant:
 
-NR before - AC before (p = 0.069), AC before - DT after (p = 0.060)
+AC before - DT after (p = 0.060)
 
 None of the Treatment pairs (not being grouped by date) we significant.
 
@@ -267,7 +269,7 @@ From the box plot, it does look like there may not be a significant difference b
 #create a linear model for the relationship
 SPADSoillm <- lm(mean_SPAD~Soil_VWC * Treatment, data = SPAD_Soil_Data)
 
-summary(SPADSoillm) #R2 = 0.2901
+summary(SPADSoillm) #R2 = 0.28
 
 #this gave us a VERY low R2 value, so I'm going to create a few more linear models and see if those give us better results 
 
@@ -275,8 +277,8 @@ SPADSoillm2 <- lm(mean_SPAD ~ Soil_VWC + Treatment, data = SPAD_Soil_Data)
 SPADSoillm3 <- lm(mean_SPAD ~ Soil_VWC, data = SPAD_Soil_Data)
 SPADSoillm4 <- lm(mean_SPAD ~ Treatment, data = SPAD_Soil_Data)
 
-summary(SPADSoillm2) #R2 = 0.1372
-summary(SPADSoillm3) #R2 = 0.095
+summary(SPADSoillm2) #R2 = 0.13
+summary(SPADSoillm3) #R2 = 0.13
 summary(SPADSoillm4) #R2 = 0.03
 
 
@@ -284,15 +286,15 @@ AllTheThingslm<- lm(mean_SPAD ~ Soil_VWC * Before_After * Treatment, data = SPAD
 summary(AllTheThingslm) #R2 is 0.38
 
 SPADBFlm <- lm(mean_SPAD ~ Before_After, data = SPAD_Soil_Data)
-summary(SPADBFlm) #R2 is 0.116
+summary(SPADBFlm) #R2 is 0.15
 
 #So, the lm that is looking at Soil VWC, rain event, AND treatment is the one that has the best line of best fit. However, for now I am going to just do the Soil plus treatment, then circle back to the everything model. 
 ```
 
 ```{r}
 
-summary(SPADSoillm2)
-coef(SPADSoillm2)["Soil_VWC"] * sd(SPAD_Soil_Data$Soil_VWC)/sd(SPAD_Soil_Data$mean_SPAD)
+summary(SPADSoillm)
+coef(SPADSoillm)["Soil_VWC"] * sd(SPAD_Soil_Data$Soil_VWC)/sd(SPAD_Soil_Data$mean_SPAD)
 
 ```
 
@@ -300,13 +302,13 @@ The important information here:
 
 for mean_SPAD \~ Soil_VWC + Treatment
 
-R2= 0.1372
+R2= 0.2869
 
-p-value = 0.037
+p-value = 0.001
 
-F = 2.704 (4, 68)
+F = 4.746 (5, 59)
 
-Beta coeff for Soil_VWC is -0.375. Because Treatment is a categorical variable, there is no Beta coeff for that.
+Beta coeff for Soil_VWC is -1.015 Because Treatment is a categorical variable, there is no Beta coeff for that.
 
 Circling back to the everything model (SPAD as a response of soil vwc, treatment, and rain event)
 
@@ -317,11 +319,11 @@ summary(AllTheThingslm)
 
 The importnat information here:
 
-- R2= 0.3805
+- R2= 0.3786
 
-- p-value = 0.00369
+- p-value = 0.0042
 
-- F statistic= 2.788
+- F statistic= 2.936 (11,53)
 
 I am, unfortunately, insane enough to try to graph this. So, plots and figure time!
 

@@ -747,7 +747,11 @@ This plot looks more like a cloud shape, so it is closer to what we assume a sca
 All_Territories_area_mass |> ggplot() + #make a plot using All Territories area mass data
   aes(x=log(mass_g), y=log(territory_area_mm))+ #makes x and y axes the log of mass and territory
   geom_point()+ #point plot
-  geom_smooth(method="lm", se=FALSE) #line of best fit, no se zone
+  geom_smooth(method="lm", se=FALSE)+ #line of best fit, no se zone
+  labs( title = "Log transformed mass and territory",
+        x = "Log of limpet mass (g)",
+        y = "Log of limpet territory area (mm2)") 
+
 
 ```
 
@@ -868,7 +872,11 @@ All_Territories_area_mass |> #use this data
   group_by(year, site) |> #group by year and site
   ggplot()+ #make a plot
   aes(x=year, y=territory_area_mm, fill=site)+ #assign x and y axes, fill with color by site
-  geom_col() #make it a column plot
+  geom_col()+ #make it a column plot
+  labs(title = "Limpet Territory Area by Year",
+       x = "Year",
+       y = "Territory Area (mm2)",
+       fill = "Site")
   
 
 ```
