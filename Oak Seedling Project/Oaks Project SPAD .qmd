@@ -177,7 +177,7 @@ None of the Treatment pairs (not being grouped by date) we significant.
 
 Before-After on its own was very significant (p= 0.003)
 
-So, my hypothesis that treatment and date were interacting is (mostly) rejectable, although it looks like the AC treatment before is significantly different from all of the after values. This isn't surprising, given that the NR, OS, and DT are similar in cover from sun and heat, while a living adult canopy would change the temperature and water in soil.
+So, my hypothesis that treatment and date were interacting is (mostly) rejectable, although it looks like the AC treatment before is significantly different from all of the after values. This isn't surprising, given that the OS and DT are similar in cover from sun and heat, while a living adult canopy would change the temperature and water in soil.
 
 Now for the figure!
 
@@ -309,6 +309,20 @@ p-value = 0.001
 F = 4.746 (5, 59)
 
 Beta coeff for Soil_VWC is -1.015 Because Treatment is a categorical variable, there is no Beta coeff for that.
+
+A figure for this!
+
+```{r}
+SPAD_Soil_Data |> 
+  ggplot()+
+  aes(x = Soil_VWC, y = mean_SPAD)+
+  geom_point()+
+  geom_smooth(method = lm, se = FALSE)+
+  facet_wrap(vars(Treatment))+
+  labs( y = "Leaf SPAD",
+        x = "Soil Moisture Percent",
+        title = "SPAD, Soil Moisture, and Microhabitat")
+```
 
 Circling back to the everything model (SPAD as a response of soil vwc, treatment, and rain event)
 
