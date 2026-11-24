@@ -191,7 +191,9 @@ guppyplot +
 #### Step 5: What is the LD50 (or lethal dose/duration) at with 50% of the guppies die?
 
 ```{r}
+guppies <- data.frame(exposureDurationMin = c(6.8, 6.9, 6.929, 7.0))
 
+predict(guppymod, newdata = guppies, type = "response")
 ```
 
 ## Multiple Logistic Regression - using STEPWISE regression
@@ -218,10 +220,10 @@ If the chi-square value is \<0.05 and the AIC score is LOWER than the first mode
 
 ```{r}
 #null model
-newt_mod <- 
+newt_mod <- glm(presence ~ 1, data = gcn, family = binomial)
 
 # this function tests all the other variables for their
-add1()
+add1(newt_mod, gcn, test = "Chisq")
 ```
 
 We look to see which one has the GREATEST reduction in the AIC score, then add that variable to the systematic component of our model in place of the 1 we had before.
@@ -241,37 +243,42 @@ E.g.,
 And we do our comparison of AIC scores again.
 
 ```{r}
-newt_mod <- 
+newt_mod <- glm(presence ~ HSI, data = gcn, family = binomial)
+add1(newt_mod, gcn, test = "Chisq")
 ```
 
 repeat...
 
 ```{r}
-newt_mod <- 
+newt_mod1 <- glm(presence ~ HSI+area, data = gcn, family = binomial)
+add1(newt_mod1, gcn, test = "Chisq")
 ```
 
 ```{r}
-newt_mod <- 
+newt_mod <- glm(presence ~ HSI+area+land, data = gcn, family = binomial)
+add1(newt_mod, gcn, test = "Chisq")
 ```
 
 ```{r}
-newt_mod <- 
+newt_mod <- glm(presence ~ HSI+area+land+dry, data = gcn, family = binomial)
+add1(newt_mod, gcn, test = "Chisq")
 ```
 
 ```{r}
-newt_mod <- 
+newt_mod <- glm(presence ~ HSI+area+land+dry+bird, data = gcn, family = binomial)
+add1(newt_mod, gcn, test = "Chisq")
 ```
 
 Let's check our our final model!
 
 ```{r}
-summary()
+summary(newt_mod)
 ```
 
 And calculate our D\^2
 
 ```{r}
-1 - 
+1 - (newt_mod$deviance/newt_mod$null.deviance)
 ```
 
 better than before!
