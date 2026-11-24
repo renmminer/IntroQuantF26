@@ -11,17 +11,17 @@ editor: visual
 Logistic Regression is for when your **response variable is categorical, but your predictor is continuous,** and mostly when it can only be in one of two forms, aka, **binomial**. This type of test is concerned with the **ODDS** of getting one state or the other of your binomial variable, depending on the state of a quantitative predictor variable.
 
 ```{r}
-load(file = )
+load(file = "Demo Data Files/S4E2e.RData")
 
-guppy <- read.csv()
-lions <- 
-earthworms <-
+guppy <- read.csv(file = "Demo Data Files/chap17f9_1GuppyColdDeath.csv")
+lions <- read.csv(file = "Demo Data Files/chap17e1LionNoses.csv")
+earthworms <- read.csv(file = "Demo Data Files/chap17q17EarthwormsAndNitrogen.csv")
 ```
 
 Load packages
 
 ```{r}
-library()
+library(tidyverse)
 ```
 
 ## Simple Logistic Regression
@@ -37,7 +37,7 @@ This dataset contains survey information on dozens of different ponds, and then 
 The "macro" column indicates the percent cover of vegetation on the pond.
 
 ```{r}
-glimpse()
+glimpse(gcn)
 ```
 
 #### Step 2: Visualize the data
@@ -45,22 +45,26 @@ glimpse()
 If we try just a scatter, we're going to miss out on observations because they all overlap...
 
 ```{r}
-ggplot()+
-  aes()+
+ggplot(gcn)+
+  aes(x = macro, y = presence)+
+  geom_point()
   
 ```
 
 It's better if we add some jitter so we can see all the observations.
 
 ```{r}
-ggplot()+
-  geom_jitter()
+ggplot(gcn)+
+  aes(x = macro, y = presence)+
+  geom_jitter(height = 0.1, shape = 1)
 ```
 
 Another way to do it is with geom_count(), which sizes the circle based on how many overlapping observations it contains.
 
 ```{r}
-newt_plot <- ggplot()
+newt_plot <- ggplot(gcn) +
+  aes( x = macro, y = presence) +
+  geom_count()
 
 
 ```
@@ -87,12 +91,14 @@ The setup of this function is the same as for `lm(),` except that we specify a *
 3.  The [link function]{.underline} (the function that transforms the relationship to make it linear)
 
 ```{r}
-newt.glm <- glm(, data = , family = )
+newt.glm <- glm(presence ~ macro, data = gcn , family = binomial(link = "logit"))
 
-summary()
+summary(newt.glm)
 ```
 
 Is macro statistically significant? What does that mean?
+
+Yes! (sig code \*\*). It doesnt tell us what that relationship is tho
 
 #### Step 4: Calculate the D^2^ value
 
@@ -100,17 +106,18 @@ Instead of R^2^ we look at D^2^ for Logistic Regression, which we can interpret 
 
 ```{r}
 
+newt.glm$deviance
+newt.glm$null.deviance
 
 
-
-1 - 
+1 - (newt.glm$deviance / newt.glm$null.deviance)
 ```
 
 Not that good of a predictor! Let's look at the plot:
 
 ```{r}
 newt_plot+
-  stat_smooth()
+  stat_smooth(method = "glm", method.args = list(family = "binomial"), se = FALSE)
 ```
 
 What is the likelihood of finding a newt if you have 50% cover of macrophytes on your pond?
@@ -119,12 +126,12 @@ What is the likelihood of finding a newt if you have 50% cover of macrophytes on
 #this is just our model from above again
 newt.glm
 
-nd <- data.frame(macro = ) # This creates a new data frame with some x values
+nd <- data.frame(macro = c(40, 50, 60)) # This creates a new data frame with some x values
 
 nd # let us look at them
 
 
-predict() # This function uses the model and the new data (that we generated a second ago) to make a prediction for the values. 
+predict(newt.glm, newdata = nd, type = "response") # This function uses the model and the new data (that we generated a second ago) to make a prediction for the values. 
 ```
 
 ### Example 2: Guppy Cold Death
@@ -136,9 +143,9 @@ We saw this example in our lecture.
 This dataframe is formatted weird, so I've taken care of the cleaning here.
 
 ```{r}
-glimpse()
+glimpse(guppy)
 
-guppy <- %>% 
+guppy <- guppy |> 
   mutate()
 
 glimpse()
@@ -147,7 +154,10 @@ glimpse()
 #### Step 1: Plot the Data
 
 ```{r}
-guppyplot <- 
+guppyplot <- guppy |> 
+  ggplot()+
+  aes(x = exposureDurationMin, y = mortality)+
+  geom_jitter(height = 0.01, shape = 1)
 
 guppyplot
 ```
@@ -155,9 +165,9 @@ guppyplot
 #### Step 2: make the model. Is duration exposure a significant predictor of guppy death?
 
 ```{r}
-guppymod <- 
+guppymod <- glm(mortality ~ exposureDurationMin, data = guppy, family = binomial(link = "logit"))
 
-summary()
+summary(guppymod)
 
 ```
 
@@ -166,13 +176,14 @@ summary()
 ```{r}
 # calculate the D^2
 
+1-(guppymod$deviance / guppymod$null.deviance)
 ```
 
 #### Step 4: Plot your data again and add a smoothed logistic regression line.
 
 ```{r}
 guppyplot + 
-  stat_smooth(method=, method.args=), se=)
+  stat_smooth(method= "glm", method.args=list(family="binomial"), se=FALSE)
 
 
 ```
