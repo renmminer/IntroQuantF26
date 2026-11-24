@@ -107,6 +107,8 @@ In this section:
 
 - ANOVA
 
+- Post-Hoc Testing
+
 - Figure
 
 Assumptions Check
@@ -182,9 +184,9 @@ Now for the figure!
 ```{r}
 SPAD_Data |> 
   ggplot()+
-  aes(x=Treatment, y = mean_SPAD, fill = fct_rev(Before_After))+
+  aes(x=Treatment, y = mean_SPAD, fill = fct_rev(Before_After))+ #make the plot be for treatment, the y axis is SPAD, and its grouped by rain event 
   geom_boxplot()+
-  scale_fill_manual(values=c("Before"="skyblue", "After"="skyblue4")) +
+  scale_fill_manual(values=c("Before"="skyblue", "After"="skyblue4"))+ #making the colors pretty 
   labs( y = "Leaf SPAD",
         x = "Microhabitat",
         title = "SPAD by Treatment and Rain Event",
@@ -196,13 +198,14 @@ This graph does a great job at showing how all of the means are similar, with th
 ```{r}
 SPAD_Data |> 
   ggplot() +
-  aes(x= fct_rev(Before_After), y = mean_SPAD, fill = fct_rev(Before_After)) +
+  aes(x= fct_rev(Before_After), y = mean_SPAD, fill = fct_rev(Before_After)) + #fct_rev makes the order of before and after how i want it to be 
   geom_boxplot() +
-  scale_fill_manual(values=c("Before"="skyblue", "After"="skyblue4"))+
-  expand_limits(y=0)+
+  scale_fill_manual(values=c("Before"="skyblue", "After"="skyblue4"))+ #pretty colors for fill 
+  expand_limits(y=0)+ #I wanted the y-axis to not cut off the bottom 20, it looked squished
   labs( y = "Leaf SPAD",
         x = "Before/After Rain Event",
-        title = "SPAD and Relation to Rain Event")
+        title = "SPAD and Relation to Rain Event",
+        fill = "Relation to Rain Event")#labels 
   
 ```
 
