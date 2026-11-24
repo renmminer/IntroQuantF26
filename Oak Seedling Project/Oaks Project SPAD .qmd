@@ -165,7 +165,7 @@ TukeyHSD(SPAD_Model_aov)
 
 ```
 
-The following treatment/date pairs were statistically significant:
+The following differences between treatment/date pairs were statistically significant:
 
 AC before - AC after (p = 0.001), AC before - OS after (p = 0.007).
 
@@ -176,8 +176,6 @@ AC before - DT after (p = 0.060)
 None of the Treatment pairs (not being grouped by date) we significant.
 
 Before-After on its own was very significant (p= 0.003)
-
-So, my hypothesis that treatment and date were interacting is (mostly) rejectable, although it looks like the AC treatment before is significantly different from all of the after values. This isn't surprising, given that the OS and DT are similar in cover from sun and heat, while a living adult canopy would change the temperature and water in soil.
 
 Now for the figure!
 
@@ -276,10 +274,18 @@ summary(SPADSoillm) #R2 = 0.28
 SPADSoillm2 <- lm(mean_SPAD ~ Soil_VWC + Treatment, data = SPAD_Soil_Data)
 SPADSoillm3 <- lm(mean_SPAD ~ Soil_VWC, data = SPAD_Soil_Data)
 SPADSoillm4 <- lm(mean_SPAD ~ Treatment, data = SPAD_Soil_Data)
+SPADSoillm5<- lm(mean_SPAD ~ Before_After * Soil_VWC, data = SPAD_Soil_Data)
+SPADSoillm6 <- lm(mean_SPAD ~ Before_After + Soil_VWC, data = SPAD_Soil_Data)
+SPADSoillm7 <- lm(mean_SPAD ~ Soil_VWC + Before_After, data = SPAD_Soil_Data)
+SPADRainlm <- lm(mean_SPAD~ Before_After, data = SPAD_Soil_Data)
 
 summary(SPADSoillm2) #R2 = 0.13
 summary(SPADSoillm3) #R2 = 0.13
 summary(SPADSoillm4) #R2 = 0.03
+summary(SPADSoillm5) #R2 = 0.15
+summary(SPADSoillm6) #R2 = 0.15
+summary(SPADSoillm7) #R2 = 0.15
+summary(SPADRainlm) #R2=0.15
 
 
 AllTheThingslm<- lm(mean_SPAD ~ Soil_VWC * Before_After * Treatment, data = SPAD_Soil_Data)
