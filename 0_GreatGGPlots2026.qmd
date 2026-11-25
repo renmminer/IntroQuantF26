@@ -96,7 +96,8 @@ PinePlotLabs +
   annotate(geom = "text", x = 20, y = 25, label = "No trees were harmed in this study") + 
   #geom_text(mapping = aes(label = Seed), position = "jitter")
   geom_label(mapping = aes(label = Seed))
-  #ggrepel::geom_label_repel(aes(label = Seed))
+  #+ggrepel::geom_label_repel(aes(label = Seed))
+  #+#ggrepel breaks apart the labels so you can read them. This example has too many points at one spot for gg repel to work. 
 
 ```
 
@@ -106,11 +107,11 @@ The whole plot can have its appearance changed using themes.
 
 ```{r Set Whole-Plot Themes}
 PinePlotLabs + 
-  #theme_bw()
+  theme_bw()
 #theme_classic()
 #theme_light()
 #theme_minimal()
-theme_void()
+#theme_void()
 ```
 
 ## Changing the y and x-axis limits
@@ -143,7 +144,8 @@ PinePlotLabs +
 ```{r Relabel x-axis categories}
 BugSprayPlot + 
   scale_x_discrete(name = "Bug Spray Brands",
-                      labels = c("Skin So Soft", "DEET", "Off!", "Picaridin", "Eucalyptus Oil", "Control"))
+                      labels = c("Skin So Soft", "DEET", "Off!", "Picaridin", "Eucalyptus Oil", "Control"))+
+  theme(legend.position="NONE") #gets rid of the legend 
 ```
 
 ## Changing Colors
@@ -161,8 +163,8 @@ othercolors <- c("#F0FFFF", "#A52A2A", "#0000FF", "#FFB90F", "#556B2F", "#9932CC
 
 
 BugSprayPlot +
-  #scale_fill_manual(values = customcolors)
-  scale_fill_manual(values = othercolors)
+  scale_fill_manual(values = customcolors)
+ # scale_fill_manual(values = othercolors)
 ```
 
 ### Setting colors using packages and palettes
@@ -210,7 +212,7 @@ https://github.com/EmilHvitfeldt/r-color-palettes
 library(wesanderson)
 wes_palettes
 
-Wes_colors <- wes_palette("IsleofDogs1", 6, type ="discrete")
+Wes_colors <- wes_palette("AsteroidCity2", 6, type ="discrete")
 
 BugSprayPlot +
   scale_fill_manual(values = Wes_colors)
@@ -262,6 +264,7 @@ More: http://zevross.com/blog/2014/08/04/beautiful-plotting-in-r-a-ggplot2-cheat
 ## Combining multiple plots into one figure elegantly
 
 ```{r Combining multiple plots with patchwork}
+install.packages("patchwork")
 library(patchwork)
 
 PinePlot + OldFaithfulPlot / BugSprayPlot
@@ -285,16 +288,19 @@ Cheap way: Plots panel –\> Export –\> Save as Image or Save as PDF
 tiff("MyFavoriteFigure.tif", width =4.5, height = 4, units = 'in', res = 300)
 OldFaithfulPlot #Then, run all the code that goes with your figure! 
 dev.off()  # Finally, the dev.off() line tells it you're all done and saves the figure. 
+#You have to run all three lines of code at once for this to work
 
 
 pdf("Fig2.pdf") 
 print(BugSprayPlot)
 dev.off() 
+#run all three lines at once
 
 
 jpeg("Fig3.jpg", width = 350, height = "350")
 print(PinePlotLabs)
 dev.off()
+#run all three lines at once 
 ```
 
 can do: pdf(“rplot.pdf”): pdf file png(“rplot.png”): png file jpeg(“rplot.jpg”): jpeg file postscript(“rplot.ps”): postscript file bmp(“rplot.bmp”): bmp file win.metafile(“rplot.wmf”): windows metafile
